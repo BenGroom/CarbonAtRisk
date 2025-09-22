@@ -1,0 +1,27 @@
+# Ignore all generated outputs
+Outputs/*
+!Outputs/README.md
+
+# Python cache and virtual environments
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.env/
+.venv/
+venv/
+env/
+
+# R session files
+.Rhistory
+.RData
+.Rproj.user/
+.Ruserdata
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# System files
+.DS_Store
+Thumbs.db
