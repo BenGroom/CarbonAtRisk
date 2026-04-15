@@ -6,7 +6,7 @@ The default pipeline reproduces all figures in approximately 2 minutes using pre
 
 ## Requirements
 
-- **R** (>= 4.1; tested with R 4.5.0)
+- **R** (>= 4.1; tested with R 4.5.0, on Mac OS (M2))
 - **R packages**: `tidyverse` (2.0.0), `patchwork` (1.3.0), `truncnorm` (1.0-9), `sf` (1.0-21), `terra` (1.8-70), `evd` (2.3-7.1), `ggrepel` (0.9.6), `scales` (1.4.0), `httr`, `jsonlite`, `grid`, `MASS`, `parallel`
 - **NASA Earthdata account**: Only required if re-running the MODIS spatial correlation pipeline from scratch (Step 0). Not needed for the default run.
 
