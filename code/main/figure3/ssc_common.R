@@ -1,6 +1,6 @@
 # Storage Security Calculator — Common functions
 # Shared by ssc_offshore.R and ssc_onshore.R
-# From Alcalde et al. (2018), adapted for standalone use in 
+# From Alcalde et al. (2018), adapted for standalone use in this pipeline
 
 # 1.1 Triangle distribution (courtesy of R. A. Godfrey)
 # https://www.rdocumentation.org/packages/ExtDist/versions/0.6-3/topics/Triangular

@@ -1,5 +1,5 @@
 # Storage Security Calculator — Well-regulated offshore scenario
-# From Alcalde et al. (2018), adapted for standalone use in 
+# From Alcalde et al. (2018), adapted for standalone use in this pipeline
 # Original code: code/fig3/DACCS200.R
 
 source("code/main/figure3/ssc_common.R")

@@ -26,17 +26,21 @@ GPKG_PATH <- "data/admin_regrowth_with_gpp.gpkg"
 EFFIS_CACHE <- "data/effis_cache"
 ESTATE_AREA <- 1000
 CLIMATE_RATE <- 0.005
-N_SIMULATIONS <- 1000
+N_SIMULATIONS <- 5000
 T_HORIZON <- 100
 REGROWTH_RATES <- get_regrowth_rates()
 
 K_VALUES <- c(1, 2, 5, 10, 20, 50, 100, 200, 500)
-RHO_VALUES <- c(0, 0.05, 0.1, 0.25, 0.5)
+# 0.07 is the median pairwise correlation estimated from MODIS in Section 3.1,
+# and is the value the main text quotes. It was previously absent from the sweep,
+# so the numbers quoted at that correlation could not be reproduced from the
+# shipped outputs.
+RHO_VALUES <- c(0, 0.05, 0.07, 0.1, 0.25, 0.5)
 
 out_dir <- "outputs/si"
 if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
 
-set.seed(42)
+set.seed(CAR_SEED)
 
 # Load data and extract California parameters ---------------------------------
 gdf_gadm <- st_read(GPKG_PATH, quiet = TRUE)
@@ -66,6 +70,13 @@ for (i in seq_len(nrow(sweep_results))) {
   k <- sweep_results$K[i]
   rho <- sweep_results$rho[i]
   cat(sprintf("  K=%3d, rho=%.2f ... ", k, rho))
+
+  # Reseed per cell. Seeding once at the top lets the loop advance the RNG, so
+  # each (K, rho) cell starts from a different state and the K = 1 column drifts
+  # across rho by a few kg/tonne -- which is impossible, since a single project
+  # has no inter-project correlation. Reseeding makes K = 1 identical at every
+  # rho, as it must be, and makes each cell independently reproducible.
+  set.seed(CAR_SEED)
 
   result <- simulate_diversified_car(
     empirical_burn_fractions, regrowth_rate, CLIMATE_RATE,
@@ -100,14 +111,19 @@ p <- ggplot(sweep_results, aes(x = K, y = car_95, color = rho_label)) +
            label = "Expected loss", hjust = 1, vjust = -0.5,
            size = 6, color = "gray40") +
   scale_x_log10(breaks = K_VALUES, labels = K_VALUES) +
+  # One colour per rho, generated from RHO_VALUES so the scale cannot fall out of
+  # step with the sweep the way it did when rho = 0.07 was added.
   scale_color_manual(
-    values = c(CA_COLOR, "#C0392B", "#2C3E50", "#7F8C8D", "#95A5A6"),
+    values = setNames(
+      colorRampPalette(c(CA_COLOR, "#C0392B", "#2C3E50", "#95A5A6"))(length(RHO_VALUES)),
+      sprintf("rho == %.2f", RHO_VALUES)
+    ),
     labels = function(x) parse(text = x)
   ) +
   labs(
     title = NULL,
     x = "Number of Projects (K)",
-    y = "95th Percentile CaR (ha)",
+    y = expression("95th Percentile CaR (kg per tonne CO"[2]*"e)"),
     color = NULL
   ) +
   theme_classic(base_size = 22) +

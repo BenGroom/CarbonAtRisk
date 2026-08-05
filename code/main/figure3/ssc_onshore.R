@@ -1,5 +1,5 @@
 # Storage Security Calculator — Unregulated onshore scenario
-# From Alcalde et al. (2018), adapted for standalone use in 
+# From Alcalde et al. (2018), adapted for standalone use in this pipeline
 
 source("code/main/figure3/ssc_common.R")
 

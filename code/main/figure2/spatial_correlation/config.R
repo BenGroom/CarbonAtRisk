@@ -24,7 +24,7 @@ REGIONS <- list(
 )
 
 # ── File Paths ─────────────────────────────────────────────────────────────
-# All paths relative to project root, routed through 
+# All paths are relative to the repository root.
 PATHS <- list(
   # Input data
   gpkg = "data/admin_regrowth_with_gpp.gpkg",

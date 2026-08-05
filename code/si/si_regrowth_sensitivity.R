@@ -18,13 +18,13 @@ library(jsonlite)
 source("code/0_funcs/fire_funcs.R")
 source("code/0_funcs/regrowth_funcs.R")
 
-set.seed(42)
+set.seed(CAR_SEED)
 
 # Configuration ---------------------------------------------------------------
 GPKG_PATH <- "data/admin_regrowth_with_gpp.gpkg"
 EFFIS_CACHE <- "data/effis_cache"
 CLIMATE_RATE <- 0.005
-N_SIMULATIONS <- 1000
+N_SIMULATIONS <- 5000
 ESTATE_AREA <- 1000
 REGROWTH_RATES <- get_regrowth_rates()
 
@@ -61,6 +61,7 @@ for (mi in seq_along(REGROWTH_MULTIPLIERS)) {
   regrowth <- min(base_regrowth * mult, 0.1)
   cat(sprintf("  Regrowth = %s (%.1f%%/yr) ... ", REGROWTH_LABELS[mi], regrowth * 100))
 
+  set.seed(CAR_SEED)
   car_result <- run_car_simulation(
     burn_fracs, regrowth,
     time_horizons = car_horizons,

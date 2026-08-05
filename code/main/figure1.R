@@ -4,8 +4,8 @@
 #
 # The buffer interpretation follows notes/buffer_interpretation.tex:
 #   CaR = Buffer, by definition, when both computed at contracted scale Q.
-#   Contract Q = Q* + CaR_95, so p_5(Q) = Q*.
-#   The p_5 calculation is on ALL Q tonnes (target + buffer), so
+#   Contract Q = G + CaR_95, so D_5(Q) = G, where G is the delivery obligation.
+#   The D_5 calculation is on ALL Q tonnes (obligation + buffer), so
 #   buffer-on-buffer failure is already accounted for.
 
 # Libraries ----------------------------------------------------------------
@@ -141,7 +141,8 @@ panel_a <- ggplot() +
   annotate("text",
            x = car_thresholds / 2,
            y = arrow_ys + y_max * 0.04,
-           label = paste0("Carbon Removed (", confidence_levels * 100, "% sure)"),
+           label = paste0('"CO"[2]*" removed (', confidence_levels * 100, '% sure)"'),
+           parse = TRUE,
            size = 1.8, color = unname(GREEN_SHADES), fontface = "bold",
            hjust = 0.5) +
   # Red "CaR" arrows (Q -> each threshold)
@@ -177,7 +178,7 @@ panel_a <- ggplot() +
                   ylim = c(-y_max * 0.25, y_max * 1.05),
                   clip = "off") +
   labs(
-    x = expression("Carbon removed (kg per tonne CO"[2]*"e)"),
+    x = expression("Carbon dioxide removed (kg per tonne CO"[2]*"e)"),
     y = "Probability density"
   ) +
   theme_classic(base_size = 8) +
@@ -190,7 +191,8 @@ panel_a <- ggplot() +
     legend.key.size = unit(0.25, "cm"),
     legend.text = element_text(size = 5.5),
     legend.background = element_rect(fill = alpha("white", 0.9),
-                                     color = "black", linewidth = 0.3)
+                                     color = "black", linewidth = 0.3),
+    plot.tag = element_text(face = "bold", size = 9)
   ) +
   guides(fill = guide_legend(override.aes = list(color = "grey40",
                                                   linewidth = 0.3)))
@@ -201,10 +203,10 @@ panel_a <- ggplot() +
 # Consistent with buffer_interpretation.tex analysis.
 
 # Buffer interpretation parameters
-# Q_star is the target delivery; Q is total contracted
-Q_STAR <- p5        # target delivery = 5th percentile of distribution
-Q_TOTAL <- Q_TARGET # total contracted (= Q* + CaR_95)
-BUFFER  <- Q_TOTAL - Q_STAR  # = CaR_95
+# G_OBLIG is the delivery obligation; Q is total contracted
+G_OBLIG <- p5       # delivery obligation = 5th percentile of distribution
+Q_TOTAL <- Q_TARGET # total contracted (= G + CaR_95)
+BUFFER  <- Q_TOTAL - G_OBLIG  # = CaR_95
 
 # Vertical layout positions (in data coordinates of the delivery axis)
 bar_top    <- y_max * 1.50
@@ -213,23 +215,23 @@ brace_y    <- y_max * 1.65
 arrow_mid  <- y_max * 0.85
 
 panel_b <- ggplot() +
-  # === Contract bar: Q* portion (green) ===
+  # === Contract bar: obligation portion (green) ===
   annotate("rect",
-           xmin = 0, xmax = Q_STAR,
+           xmin = 0, xmax = G_OBLIG,
            ymin = bar_bottom, ymax = bar_top,
            fill = GREEN_95, alpha = 0.25, color = "black", linewidth = 0.4) +
-  annotate("text", x = Q_STAR / 2, y = (bar_top + bar_bottom) / 2,
-           label = 'italic(Q)*"*: target"', parse = TRUE, size = 2.2) +
+  annotate("text", x = G_OBLIG / 2, y = (bar_top + bar_bottom) / 2,
+           label = 'italic(G)*": obligation"', parse = TRUE, size = 2.2) +
   # === Contract bar: Buffer portion (red) ===
   annotate("rect",
-           xmin = Q_STAR, xmax = Q_TOTAL,
+           xmin = G_OBLIG, xmax = Q_TOTAL,
            ymin = bar_bottom, ymax = bar_top,
            fill = RED_95, alpha = 0.25, color = "black", linewidth = 0.4) +
-  annotate("text", x = (Q_STAR + Q_TOTAL) / 2,
+  annotate("text", x = (G_OBLIG + Q_TOTAL) / 2,
            y = (bar_top + bar_bottom) / 2,
            label = expression(CaR[95]),
            size = 2.2) +
-  # === Brace above: Q = Q* + CaR_95 ===
+  # === Brace above: Q = G + CaR_95 ===
   # Bracket line just above the bar
   annotate("segment", x = 0, xend = 0,
            y = bar_top + y_max * 0.02, yend = bar_top + y_max * 0.08,
@@ -242,7 +244,7 @@ panel_b <- ggplot() +
            color = "grey40", linewidth = 0.3) +
   # Text above the bracket line
   annotate("text", x = Q_TOTAL / 2, y = bar_top + y_max * 0.15,
-           label = expression(italic(Q) == italic(Q)*"* + " * CaR[95]),
+           label = expression(italic(Q) == italic(G) + CaR[95]),
            size = 2.3) +
   # === Arrow down: "some projects fail" ===
   annotate("segment",
@@ -261,12 +263,12 @@ panel_b <- ggplot() +
   geom_area(data = shade_tail, aes(x = x, y = y),
             fill = RED_95, alpha = 0.3) +
   # (5% tail label removed for clarity)
-  # === Dashed line at p5 = Q* ===
-  annotate("segment", x = Q_STAR, xend = Q_STAR,
+  # === Dashed line at D_5 = G ===
+  annotate("segment", x = G_OBLIG, xend = G_OBLIG,
            y = -y_max * 0.02, yend = bar_bottom,
            linetype = "dashed", color = RED_95, linewidth = 0.5) +
-  annotate("text", x = Q_STAR, y = -y_max * 0.05,
-           label = expression(italic(p)[5] == italic(Q)*"*"),
+  annotate("text", x = G_OBLIG, y = -y_max * 0.05,
+           label = expression(italic(D)[5] == italic(G)),
            size = 1.8, color = RED_95) +
   # === Dotted line at Q ===
   annotate("segment", x = Q_TOTAL, xend = Q_TOTAL,
@@ -280,7 +282,7 @@ panel_b <- ggplot() +
            label = "Delivery:", size = 2, fontface = "bold",
            hjust = 1, color = "grey30") +
   # === CaR decomposition bar below distribution ===
-  # Downside risk bracket: p5 to mu
+  # Tail component bracket: D_5 to mu
   annotate("segment", x = p5, xend = CAR_MU,
            y = -y_max * 0.26, yend = -y_max * 0.26,
            linewidth = 1.8, color = RED_95) +
@@ -291,9 +293,9 @@ panel_b <- ggplot() +
            y = -y_max * 0.23, yend = -y_max * 0.29,
            linewidth = 0.6, color = RED_95) +
   annotate("text", x = p5, y = -y_max * 0.33,
-           label = "Downside risk", size = 1.75, fontface = "bold",
+           label = "Tail component", size = 1.75, fontface = "bold",
            hjust = 0, color = RED_95) +
-  # Expected delivery gap bracket: mu to Q
+  # Contracting gap bracket: mu to Q
   annotate("segment", x = CAR_MU, xend = Q_TOTAL,
            y = -y_max * 0.26, yend = -y_max * 0.26,
            linewidth = 1.8, color = DARK_RED) +
@@ -301,7 +303,7 @@ panel_b <- ggplot() +
            y = -y_max * 0.23, yend = -y_max * 0.29,
            linewidth = 0.6, color = DARK_RED) +
   annotate("text", x = CAR_MU, y = -y_max * 0.33,
-           label = "Exp. delivery gap", size = 1.75, fontface = "bold",
+           label = "Contracting gap", size = 1.75, fontface = "bold",
            hjust = 0, color = DARK_RED) +
   # mu tick mark at y=0 level
   annotate("segment", x = CAR_MU, xend = CAR_MU,
@@ -320,7 +322,7 @@ panel_b <- ggplot() +
                   ylim = c(-y_max * 0.40, brace_y + y_max * 0.10),
                   clip = "off") +
   labs(
-    x = expression("Carbon removed (kg per tonne CO"[2]*"e)"),
+    x = expression("Carbon dioxide removed (kg per tonne CO"[2]*"e)"),
     y = NULL
   ) +
   theme_classic(base_size = 8) +
@@ -329,15 +331,15 @@ panel_b <- ggplot() +
     axis.title = element_text(size = 6.5),
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.line.y = element_blank()
+    axis.line.y = element_blank(),
+    plot.tag = element_text(face = "bold", size = 9)
   )
 
 # Assemble & save ----------------------------------------------------------
 
 fig1 <- panel_a + panel_b +
   plot_layout(widths = c(1, 1)) +
-  plot_annotation(tag_levels = "a") &
-  theme(plot.tag = element_text(face = "bold", size = 9))
+  plot_annotation(tag_levels = "a")
 
 # 183 mm wide = 7.2 inches; height scaled proportionally
 ggsave(file.path(out_dir, "figure1.pdf"), fig1,

@@ -1,5 +1,13 @@
-# Figure 2: Fire Risk, Diversification, and Spatial Correlation
-# 6-panel figure for Nature Climate Change submission
+# Figure 2: Fire Risk and Diversification
+#
+# Main text (3 panels, single row):
+#   a  Annual burn fractions by region, historic and projected 2100
+#   b  95% CaR over 1-200 year horizons, three regions
+#   c  CaR reduction from K=1 to K=100 against inter-project correlation
+#
+# SI (built here, from the panels no longer in the main text):
+#   si_rho_distance.pdf  Pairwise correlation against distance (California)
+#   si_density_k.pdf     Delivery densities, K=1 vs K=100, three correlations
 #
 # Prerequisites:
 #   - Spatial correlation pipeline (01 -> 02 -> 03) must be run first
@@ -10,7 +18,8 @@
 #
 # Output:
 #   - outputs/main/figure2.pdf (composite figure)
-#   - outputs/main/figure2_{a..e}.pdf (individual panels)
+#   - outputs/main/subfigs/figure2_{a..e}.pdf (individual panels)
+#   - outputs/si/si_rho_distance.pdf, si_density_k.pdf
 
 library(sf)
 library(httr)
@@ -31,7 +40,7 @@ EFFIS_CACHE <- "data/effis_cache"
 PROJECT_AREA <- 100000
 CLIMATE_RATE <- 0.005
 RESCALE_FIRESIZE <- FALSE
-N_SIMULATIONS <- 1000
+N_SIMULATIONS <- 5000
 TIME_HORIZONS <- c(1, seq(10, 200, 10))
 REGROWTH_RATES <- get_regrowth_rates()
 
@@ -55,10 +64,15 @@ if (!dir.exists(subfig_dir)) dir.create(subfig_dir, recursive = TRUE)
 FIG_WIDTH_MM <- 183
 FIG_WIDTH_IN <- FIG_WIDTH_MM / 25.4  # ~7.2 inches
 
-set.seed(101)
+# Every simulation call site is seeded individually rather than relying on one
+# seed at the top of the script. Calls otherwise draw from different points in
+# the stream, so the same quantity (the K=1 California CaR) came out differently
+# in each panel.
+set.seed(CAR_SEED)
 
 # Load data -------------------------------------------------------------------
 gdf_gadm <- st_read(GPKG_PATH, quiet = TRUE)
+set.seed(CAR_SEED)
 results <- process_selected_geometries(
   gdf_gadm, SELECTED_REGIONS,
   regrowth_rates = REGROWTH_RATES,
@@ -204,9 +218,10 @@ panel_c <- plot_correlation_vs_distance(
 rho_values <- c(0, 0.1, 0.25)
 pdf_data <- map_dfr(rho_values, function(rho) {
   cat(sprintf("Running simulations for rho = %.2f...\n", rho))
+  set.seed(CAR_SEED)
   sim_result <- run_diversification_analysis(
     gdf_gadm, regrowth_rates = REGROWTH_RATES,
-    correlation = rho, n_simulations = 1000, return_raw = TRUE,
+    correlation = rho, n_simulations = N_SIMULATIONS, return_raw = TRUE,
     rescale_firesize = RESCALE_FIRESIZE,
     cache_dir = EFFIS_CACHE
   )
@@ -309,8 +324,9 @@ panel_d <- ggplot(pdf_data, aes(x = carbon_removed, fill = projects)) +
 # Panel (e): Benefit vs rho ---------------------------------------------------
 cat("Running correlation sweep...\n")
 sweep_df <- map_dfr(seq(0, 1, 0.05), function(rho) {
+  set.seed(CAR_SEED)
   run_diversification_analysis(gdf_gadm, regrowth_rates = REGROWTH_RATES,
-                               correlation = rho, n_simulations = 1000,
+                               correlation = rho, n_simulations = N_SIMULATIONS,
                                rescale_firesize = RESCALE_FIRESIZE,
                                cache_dir = EFFIS_CACHE)$summary %>%
     mutate(rho = !!rho)
@@ -339,24 +355,155 @@ panel_e <- ggplot(sweep_df, aes(x = rho, y = reduction_pct)) +
   labs(
     title = NULL,
     x = expression("Correlation between projects ("*rho*")"),
-    y = "CaR reduction (%)\nfrom K=1 to K=100"
+    y = "Change in CaR (%)\nfrom K=1 to K=100"
   ) +
   theme_classic(base_size = 8)
+
+# SI figures: panels moved out of the main text -------------------------------
+si_dir <- "outputs/si"
+if (!dir.exists(si_dir)) dir.create(si_dir, recursive = TRUE)
+
+# Rendered at the width they are displayed at in supplement.tex, so the panel
+# base_size is the true on-page point size.
+SI_LINEWIDTH_IN <- 500.484 / 72.27
+SI_FRAC_RHO <- 0.40
+SI_FRAC_DENS <- 0.60
+
+ggsave(file.path(si_dir, "si_rho_distance.pdf"),
+       panel_c + theme_classic(base_size = 8),
+       width = SI_FRAC_RHO * SI_LINEWIDTH_IN,
+       height = SI_FRAC_RHO * SI_LINEWIDTH_IN * 0.85)
+ggsave(file.path(si_dir, "si_density_k.pdf"), panel_d,
+       width = SI_FRAC_DENS * SI_LINEWIDTH_IN,
+       height = SI_FRAC_DENS * SI_LINEWIDTH_IN * 0.55)
+
+cat("\n--- CaR vs CVaR at 95%, kg per tonne contracted (SI table) ---\n")
+results$car_results %>%
+  filter(time_horizon %in% c(100, 200)) %>%
+  mutate(
+    region = case_when(
+      geo_label == "United States - California" ~ "California",
+      geo_label == "Brazil - Mato Grosso"       ~ "Mato Grosso",
+      geo_label == "Indonesia - Papua"          ~ "Papua"
+    ),
+    CaR_95  = round(car_95 * 1000),
+    CVaR_95 = round(cvar_95 * 1000),
+    uplift  = sprintf("%.1f%%", 100 * (cvar_95 / car_95 - 1))
+  ) %>%
+  select(region, time_horizon, CaR_95, CVaR_95, uplift) %>%
+  arrange(region, time_horizon) %>%
+  as.data.frame() %>%
+  print(row.names = FALSE)
+cat("\n")
+
+cat(sprintf("Correlation decay fit: rho0 = %.4f, lambda = %.1f km\n",
+            ca_rho0, ca_lambda_km))
+cat(sprintf("California median pairwise rho, all pairs: %.4f\n",
+            median(ca_pairs$cor_spearman)))
+cat(sprintf("California median pairwise rho, <100 km:  %.4f\n",
+            median(ca_pairs$cor_spearman[ca_pairs$distance_km < 100])))
+cat(sprintf("California median pairwise rho, >500 km:  %.4f\n",
+            median(ca_pairs$cor_spearman[ca_pairs$distance_km > 500])))
+cat(sprintf("Mato Grosso median pairwise rho, all pairs: %.4f\n",
+            median(within_region$Mato_Grosso$pairs$cor_spearman)))
+
+# Machine-readable export -----------------------------------------------------
+# Every forest number quoted in the main text or SI, in one long-format file, so
+# transcription into the manuscript can be checked rather than read off the
+# figure annotations.
+
+num_dir <- "outputs/intermediate"
+if (!dir.exists(num_dir)) dir.create(num_dir, recursive = TRUE)
+
+num_single <- results$car_results %>%
+  filter(time_horizon %in% c(30, 100, 200)) %>%
+  mutate(region = case_when(
+    geo_label == "United States - California" ~ "California",
+    geo_label == "Brazil - Mato Grosso"       ~ "Mato Grosso",
+    geo_label == "Indonesia - Papua"          ~ "Papua"
+  )) %>%
+  select(region, horizon_yr = time_horizon, mean_loss = mean_car,
+         car_95, cvar_95) %>%
+  pivot_longer(c(mean_loss, car_95, cvar_95),
+               names_to = "statistic", values_to = "value") %>%
+  mutate(quantity = "single_project", rho = NA_real_,
+         value = round(value * 1000, 1), unit = "kg_per_tonne")
+
+num_cvar_uplift <- results$car_results %>%
+  filter(time_horizon %in% c(30, 100, 200)) %>%
+  mutate(region = case_when(
+    geo_label == "United States - California" ~ "California",
+    geo_label == "Brazil - Mato Grosso"       ~ "Mato Grosso",
+    geo_label == "Indonesia - Papua"          ~ "Papua"
+  )) %>%
+  transmute(quantity = "single_project", region, horizon_yr = time_horizon,
+            rho = NA_real_, statistic = "cvar_uplift",
+            value = round(100 * (cvar_95 / car_95 - 1), 2), unit = "percent")
+
+# Panel d: the three correlation levels the main text and SI quote.
+num_panel_d <- div_benefit_e %>%
+  transmute(rho,
+            car_K1 = `K = 1`, car_K100 = `K = 100`,
+            div_benefit_kg = div_benefit,
+            div_benefit_pct = 100 * div_benefit / `K = 1`) %>%
+  pivot_longer(-rho, names_to = "statistic", values_to = "value") %>%
+  mutate(quantity = "portfolio_panel_d", region = "California",
+         horizon_yr = 100,
+         unit = if_else(statistic == "div_benefit_pct",
+                        "percent", "kg_per_tonne"),
+         value = round(value, 2))
+
+# Panel e: the full rho grid behind the sweep.
+num_panel_e <- sweep_df %>%
+  transmute(rho, car_K1 = CaR_K1, car_K10 = CaR_K10, car_K100 = CaR_K100,
+            div_benefit_kg = CaR_K1 - CaR_K100,
+            div_benefit_pct = -reduction_pct) %>%
+  pivot_longer(-rho, names_to = "statistic", values_to = "value") %>%
+  mutate(quantity = "portfolio_panel_e", region = "California",
+         horizon_yr = 100,
+         unit = if_else(statistic == "div_benefit_pct",
+                        "percent", "kg_per_tonne"),
+         value = round(value, 2))
+
+figure2_numbers <- bind_rows(num_single, num_cvar_uplift,
+                             num_panel_d, num_panel_e) %>%
+  select(quantity, region, horizon_yr, rho, statistic, value, unit)
+
+write.csv(figure2_numbers,
+          file.path(num_dir, "figure2_numbers.csv"), row.names = FALSE)
+cat("\nWrote", file.path(num_dir, "figure2_numbers.csv"),
+    sprintf("(%d rows)\n", nrow(figure2_numbers)))
+
+# The K=1 California CaR at 100 years is quoted in three places and must agree
+# across all of them now that each call site is seeded identically.
+k1_panel_b <- figure2_numbers %>%
+  filter(quantity == "single_project", region == "California",
+         horizon_yr == 100, statistic == "car_95") %>% pull(value)
+k1_panel_d <- figure2_numbers %>%
+  filter(quantity == "portfolio_panel_d", rho == 0,
+         statistic == "car_K1") %>% pull(value)
+k1_panel_e <- figure2_numbers %>%
+  filter(quantity == "portfolio_panel_e", rho == 0,
+         statistic == "car_K1") %>% pull(value)
+cat(sprintf("K=1 California CaR95 at 100 yr: panel b %.1f | panel d %.1f | panel e %.1f\n",
+            k1_panel_b, k1_panel_d, k1_panel_e))
+if (max(abs(c(k1_panel_d, k1_panel_e) - k1_panel_b)) > 0.5) {
+  warning("K=1 California CaR disagrees across panels; check the per-call-site seeding.")
+}
 
 # Assemble figure -------------------------------------------------------------
 cat("Assembling figure...\n")
 
-fig2 <- (panel_a | panel_b | panel_c) /
-        (panel_d + panel_e + plot_layout(widths = c(2, 1))) +
-  plot_annotation(tag_levels = "a") &
-  theme(
-    plot.tag = element_text(face = "bold", size = 9)
-  )
+# `patchwork & theme` errors under ggplot2 4.x, so add the tag theme per panel.
+tag_theme <- theme(plot.tag = element_text(face = "bold", size = 9))
+
+fig2 <- ((panel_a + tag_theme) | (panel_b + tag_theme) | (panel_e + tag_theme)) +
+  plot_annotation(tag_levels = "a")
 
 # Save outputs ----------------------------------------------------------------
 print(fig2)
 ggsave(file.path(out_dir, "figure2.pdf"), fig2,
-       width = FIG_WIDTH_MM, height = FIG_WIDTH_MM * 9 / 14,
+       width = FIG_WIDTH_MM, height = FIG_WIDTH_MM * 5 / 14,
        units = "mm")
 
 # Individual panels (subfigures at original readable sizes)

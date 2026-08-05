@@ -21,7 +21,7 @@ library(patchwork)
 set.seed(2100)
 
 # Configuration ---------------------------------------------------------------
-N_SIMULATIONS <- 10000
+N_SIMULATIONS <- 5000
 OVERWRITE_DACCS <- exists("OVERWRITE_DACCS_FLAG") && OVERWRITE_DACCS_FLAG
 
 main_dir <- "outputs/main"
@@ -69,12 +69,18 @@ if (!file.exists(cache_file) || OVERWRITE_DACCS) {
     for (scenario in c("offshore", "onshore")) {
       loss <- if (scenario == "offshore") loss_off else loss_on
       stored <- 100 - loss
+      # Expected Shortfall: mean shortfall conditional on being in the worst 5%
+      # of stored outcomes, i.e. the mean of the CaR region rather than its edge.
+      q05_stored <- as.numeric(quantile(stored, 0.05))
+      cvar_95 <- 100 - mean(stored[stored <= q05_stored])
+
       results[[length(results) + 1]] <- data.frame(
         scenario = scenario,
         horizon_yr = yr,
         car_90 = round(100 - as.numeric(quantile(stored, 0.10)), 4),
-        car_95 = round(100 - as.numeric(quantile(stored, 0.05)), 4),
+        car_95 = round(100 - q05_stored, 4),
         car_98 = round(100 - as.numeric(quantile(stored, 0.02)), 4),
+        cvar_95 = round(cvar_95, 4),
         mean_loss = round(mean(loss), 4),
         n_simulations = length(loss)
       )
@@ -104,9 +110,38 @@ if (!file.exists(cache_file) || OVERWRITE_DACCS) {
   raw_data <- readRDS(file.path(cache_dir, "daccs_mc_raw.rds"))
 }
 
+# Backfill CVaR onto caches written before it was reported. The raw loss vectors
+# are stored, so this needs no re-simulation and leaves car_95 untouched.
+if (!"cvar_95" %in% names(car_df)) {
+  cat("Cache predates CVaR; backfilling from stored draws.\n")
+  car_df$cvar_95 <- mapply(function(scen, yr) {
+    stored <- 100 - raw_data[[paste0(scen, "_", yr)]]
+    round(100 - mean(stored[stored <= as.numeric(quantile(stored, 0.05))]), 4)
+  }, car_df$scenario, car_df$horizon_yr)
+  car_df <- car_df[, c("scenario", "horizon_yr", "car_90", "car_95", "car_98",
+                       "cvar_95", "mean_loss", "n_simulations")]
+  write.csv(car_df, cache_file, row.names = FALSE)
+}
+
 # Print summary ----------------------------------------------------------------
 cat("\nDACCS CaR Summary:\n")
 print(car_df)
+
+cat("\n--- CaR vs CVaR at 95%, % of injected CO2 (SI table) ---\n")
+car_df %>%
+  mutate(
+    scenario = ifelse(scenario == "offshore",
+                      "Offshore, well regulated",
+                      "Onshore, poorly regulated"),
+    CaR_95  = round(car_95, 2),
+    CVaR_95 = round(cvar_95, 2),
+    uplift  = sprintf("+%.1f%%", 100 * (cvar_95 / car_95 - 1))
+  ) %>%
+  select(scenario, horizon_yr, CaR_95, CVaR_95, uplift) %>%
+  arrange(scenario, horizon_yr) %>%
+  as.data.frame() %>%
+  print(row.names = FALSE)
+cat("\n")
 
 # Plotting function -----------------------------------------------------------
 plot_daccs_car <- function(loss_pct, subtitle) {
@@ -170,12 +205,14 @@ save_daccs_figure <- function(horizon_yr, output_path) {
   loss_off <- raw_data[[paste0("offshore_", horizon_yr)]]
   loss_on  <- raw_data[[paste0("onshore_", horizon_yr)]]
 
-  pa <- plot_daccs_car(loss_off, "Offshore")
-  pb <- plot_daccs_car(loss_on, "Onshore (unregulated)")
+  pa <- plot_daccs_car(loss_off, "Offshore (well regulated)")
+  pb <- plot_daccs_car(loss_on, "Onshore (poorly regulated)")
 
-  fig <- (pa | pb) +
-    plot_annotation(tag_levels = "a") &
-    theme(plot.tag = element_text(face = "bold", size = 18))
+  # `patchwork & theme` errors under ggplot2 4.x, so add the tag theme per panel.
+  tag_theme <- theme(plot.tag = element_text(face = "bold", size = 18))
+
+  fig <- ((pa + tag_theme) | (pb + tag_theme)) +
+    plot_annotation(tag_levels = "a")
 
   ggsave(output_path, fig, width = 14, height = 6)
   cat("Saved", output_path, "\n")

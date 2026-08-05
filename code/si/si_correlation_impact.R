@@ -23,32 +23,43 @@ source("code/0_funcs/regrowth_funcs.R")
 # Configuration ---------------------------------------------------------------
 GPKG_PATH <- "data/admin_regrowth_with_gpp.gpkg"
 EFFIS_CACHE <- "data/effis_cache"
-N_SIMULATIONS <- 1000
+N_SIMULATIONS <- 5000
 REGROWTH_RATES <- get_regrowth_rates()
+
+# Must match figure2.R. The default in run_diversification_analysis is TRUE, so
+# omitting this silently produced a CaR ~15% above the main-text figure for the
+# identical quantity.
+RESCALE_FIRESIZE <- FALSE
 
 out_dir <- "outputs/si"
 if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
 
-set.seed(42)
+set.seed(CAR_SEED)
 
 # Load data -------------------------------------------------------------------
 gdf_gadm <- st_read(GPKG_PATH, quiet = TRUE)
 
 # Run diversification at three correlation levels
 cat("Running diversification: rho = 0 ...\n")
+set.seed(CAR_SEED)
 div_0 <- run_diversification_analysis(gdf_gadm, regrowth_rates = REGROWTH_RATES,
                                        correlation = 0,
                                        n_simulations = N_SIMULATIONS,
+                                       rescale_firesize = RESCALE_FIRESIZE,
                                        cache_dir = EFFIS_CACHE)
 cat("Running diversification: rho = 0.5 ...\n")
+set.seed(CAR_SEED)
 div_05 <- run_diversification_analysis(gdf_gadm, regrowth_rates = REGROWTH_RATES,
                                         correlation = 0.5,
                                         n_simulations = N_SIMULATIONS,
+                                        rescale_firesize = RESCALE_FIRESIZE,
                                         cache_dir = EFFIS_CACHE)
 cat("Running diversification: rho = 1 ...\n")
+set.seed(CAR_SEED)
 div_1 <- run_diversification_analysis(gdf_gadm, regrowth_rates = REGROWTH_RATES,
                                        correlation = 1,
                                        n_simulations = N_SIMULATIONS,
+                                       rescale_firesize = RESCALE_FIRESIZE,
                                        cache_dir = EFFIS_CACHE)
 
 # Build comparison data frame -------------------------------------------------
@@ -118,7 +129,7 @@ p <- ggplot(
     title = "Impact of Correlation on Diversification Benefit",
     subtitle = div_0$region,
     x = "Time (years)",
-    y = "Carbon at Risk (ha)",
+    y = expression("Carbon at Risk (kg per tonne CO"[2]*"e)"),
     color = NULL,
     linetype = NULL
   ) +

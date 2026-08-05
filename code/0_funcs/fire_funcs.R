@@ -1,5 +1,24 @@
 # Shared simulation functions for Carbon at Risk (CaR) fire risk analysis
-# Adapted from code/funcs/fire_funcs.R for standalone  pipeline
+# Fire simulation, copula sampling and EFFIS data access for the CaR pipeline
+
+# "Seeding" ----------
+
+#' Seed for every forest fire Monte Carlo in the paper.
+#'
+#' Single source of truth. Main-text Fig. 2 and the SI forest figures previously
+#' used different seeds, so the same quantity came out differently in two places:
+#' California's single-project 100-year CaR was 656 kg/tonne from the K-rho sweep
+#' and 643 from the conversion analysis. Both are draws from the same sampling
+#' distribution (mean 650, sd 5 at N = 1,000), but a number quoted twice in prose
+#' should not move.
+#'
+#' Set to 101, the value main-text Fig. 2 already used, so the headline curves are
+#' unchanged and the SI moves to meet them.
+#'
+#' The DACCS simulations keep their own seed (2100 in figure3.R): a different
+#' simulator with no shared state. The validation self-tests in si_deforestation.R
+#' deliberately vary theirs, which is the point of a self-test.
+CAR_SEED <- 101
 
 # HELPER FUNCTIONS------------------------------------------------------------
 
@@ -119,7 +138,7 @@ simulate_burn_dynamics <- function(empirical_burn_fractions,
                                    climate_rate,
                                    max_horizon,
                                    n_projects = 1,
-                                   n_simulations = 1000,
+                                   n_simulations = 5000,
                                    correlation = 0) {
   result <- matrix(0.0, nrow = n_simulations, ncol = max_horizon + 1)
 
@@ -174,7 +193,7 @@ run_car_simulation <- function(empirical_burn_fractions,
                                annual_regrowth_rate,
                                time_horizons = c(1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100,
                                                  110, 120, 130, 140, 150, 160, 170, 180, 200),
-                               n_simulations = 1000,
+                               n_simulations = 5000,
                                climate_rate = 0.005,
                                n_projects = 1,
                                correlation = 0) {
@@ -194,10 +213,18 @@ run_car_simulation <- function(empirical_burn_fractions,
   mean_car <- colMeans(all_results)[time_horizons + 1]
   car_95 <- apply(all_results, 2, quantile, 0.95)[time_horizons + 1]
 
+  # Expected Shortfall: the mean loss conditional on exceeding the 95% quantile.
+  # Losses are the upper tail here, so the condition is x >= q95.
+  cvar_95 <- apply(all_results, 2, function(x) {
+    q <- quantile(x, 0.95)
+    mean(x[x >= q])
+  })[time_horizons + 1]
+
   return(data.frame(
     time_horizon = time_horizons,
     mean_car = mean_car,
-    car_95 = as.numeric(car_95)
+    car_95 = as.numeric(car_95),
+    cvar_95 = as.numeric(cvar_95)
   ))
 }
 
@@ -235,7 +262,7 @@ calculate_burn_fractions <- function(fires_df, forest_lc1, project_area = 100000
 #' @param rescale_firesize Whether to rescale fire size (default TRUE)
 #' @param project_area Project area in hectares (default 100000)
 #' @param regrowth_rates Named vector of annual regrowth rates (from get_regrowth_rates())
-#' @param n_simulations Number of MC simulations (default 1000)
+#' @param n_simulations Number of MC simulations (default 5000)
 #' @param time_horizons Vector of time horizons
 #' @param cache_dir Optional cache directory for EFFIS API responses
 #' @return List with car_results, plots, geometries, burn_fractions, regrowth
@@ -244,7 +271,7 @@ process_selected_geometries <- function(gdf_gadm, selected_regions,
                                          CLIMATE_RATE = 0.005,
                                          rescale_firesize = TRUE,
                                          project_area = 100000,
-                                         n_simulations = 1000,
+                                         n_simulations = 5000,
                                          time_horizons = c(1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100,
                                                            110, 120, 130, 140, 150, 160, 170, 180, 200),
                                          cache_dir = NULL) {
@@ -315,6 +342,11 @@ process_selected_geometries <- function(gdf_gadm, selected_regions,
                 min(empirical_burn_fractions), max(empirical_burn_fractions)))
 
     cat("  Running Monte Carlo simulation...\n")
+    # Seeded per region, not once for the loop. Without this each region starts
+    # wherever the previous one left off, so a region's CaR depends on how many
+    # regions preceded it and scripts that process regions in a different order
+    # report different values for the same quantity.
+    set.seed(CAR_SEED)
     car_df <- run_car_simulation(
       empirical_burn_fractions,
       annual_regrowth_rate,
@@ -415,7 +447,7 @@ simulate_diversified_car <- function(empirical_burn_fractions,
 #' @param country Country name (default "United States")
 #' @param subcountry Subcountry name (default "California")
 #' @param estate_area Total estate area in hectares (default 1000)
-#' @param n_simulations Number of Monte Carlo simulations (default 500)
+#' @param n_simulations Number of Monte Carlo simulations (default 5000)
 #' @param max_years Maximum time horizon (default 200)
 #' @param correlation Correlation between projects (default 0)
 #' @param return_raw Whether to return raw MC results (default FALSE)
@@ -429,7 +461,7 @@ run_diversification_analysis <- function(gdf_gadm,
                                          country = "United States",
                                          subcountry = "California",
                                          estate_area = 1000,
-                                         n_simulations = 500,
+                                         n_simulations = 5000,
                                          max_years = 200,
                                          correlation = 0,
                                          return_raw = FALSE,

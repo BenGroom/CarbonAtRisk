@@ -21,7 +21,7 @@ library(jsonlite)
 source("code/0_funcs/fire_funcs.R")
 source("code/0_funcs/regrowth_funcs.R")
 
-set.seed(42)
+set.seed(CAR_SEED)
 
 # Configuration ---------------------------------------------------------------
 GPKG_PATH <- "data/admin_regrowth_with_gpp.gpkg"
@@ -148,9 +148,11 @@ p3 <- ggplot(draws_df, aes(x = burn, fill = method, color = method)) +
         legend.position.inside = c(0.75, 0.9))
 
 # Assemble and save ------------------------------------------------------------
-fig <- (p2 | p3) +
-  plot_annotation(tag_levels = "a") &
-  theme(plot.tag = element_text(face = "bold", size = 16))
+# `patchwork & theme` errors under ggplot2 4.x, so add the tag theme per panel.
+tag_theme <- theme(plot.tag = element_text(face = "bold", size = 16))
+
+fig <- ((p2 + tag_theme) | (p3 + tag_theme)) +
+  plot_annotation(tag_levels = "a")
 
 ggsave(file.path(out_dir, "si_distribution_assumption.pdf"), fig,
        width = 14, height = 5)
@@ -170,6 +172,11 @@ gpd_synthetic <- sample_spliced(N_SYNTHETIC, ca_burn, threshold, gpd_scale, gpd_
 car_horizons <- seq(1, 200, by = 1)
 
 cat("Running CaR simulation: Empirical resampling...\n")
+# Seeded here, not just at the top of the script: the GPD fit and the synthetic
+# draw above consume the stream, so without this the empirical arm starts from a
+# different position than the identical simulation in figure2.R and reports a
+# different CaR for the same quantity.
+set.seed(CAR_SEED)
 car_empirical <- run_car_simulation(
   ca_burn, ca_regrowth,
   time_horizons = car_horizons,
@@ -179,6 +186,7 @@ car_empirical <- run_car_simulation(
 car_empirical$method <- "Empirical resampling"
 
 cat("Running CaR simulation: Spliced GPD...\n")
+set.seed(CAR_SEED)
 car_gpd <- run_car_simulation(
   gpd_synthetic, ca_regrowth,
   time_horizons = car_horizons,

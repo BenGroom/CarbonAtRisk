@@ -10,8 +10,9 @@
 # Note: Step 0 requires NASA Earthdata credentials and takes hours on first run.
 #       Set SKIP_MODIS = TRUE below to skip if outputs already exist.
 
-SKIP_MODIS <- TRUE             # Set to FALSE to rerun MODIS pipeline from scratch
-OVERWRITE_DACCS_FLAG <- FALSE  # Set to TRUE to rerun DACCS MC simulations
+SKIP_MODIS <- TRUE            # Set to FALSE to rerun MODIS pipeline from scratch
+OVERWRITE_DACCS_FLAG <- FALSE # figure3.R caches on file existence alone, so set
+                              # this TRUE whenever N_SIMULATIONS changes
 
 cat("═══ NCC Pipeline ═══\n\n")
 
@@ -68,6 +69,21 @@ source("code/si/si_regrowth_sensitivity.R")
 
 cat("\n── Step 2g: SI Fire history ──\n")
 source("code/si/si_fire_history.R")
+
+cat("\n── Step 2h: SI CaR phases ──\n")
+source("code/si/si_car_phases.R")
+
+cat("\n── Step 2i: SI Conversion record ──\n")
+source("code/si/si_deforestation_history.R")
+
+cat("\n── Step 2j: SI Conversion risk ──\n")
+source("code/si/si_deforestation.R")
+
+cat("\n── Step 2k: SI DACCS correlation sweep ──\n")
+source("code/si/si_rho_daccs_sweep.R")
+
+cat("\n── Step 2l: SI CaR decomposition when Q < mu ──\n")
+source("code/si/si_car_negative_gap.R")
 
 cat("\n═══ Pipeline complete ═══\n")
 cat("Main figures: outputs/main/\n")
