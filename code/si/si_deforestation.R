@@ -30,8 +30,9 @@
 #   "absorbing" the project is cleared entirely at tau ~ Geometric(delta_bar).
 #               Reported once as a bound.
 #
-# Data: GFW gadm__tcl__adm1_change v20260424 with Sepulveda et al. (2024) driver
-# attribution, restricted to five non-fire anthropogenic drivers. Wildfire is
+# Data: GFW gadm__tcl__adm1_change v20260424 with the WRI/Google DeepMind 1 km
+# dominant-driver attribution of Sims et al. (2025), restricted to five non-fire
+# anthropogenic drivers. Wildfire is
 # excluded at source, so fire and conversion are disjoint and can be composed
 # without double-counting. See si_defor_driver_audit.py for the driver shares.
 #
@@ -325,7 +326,7 @@ pa <- ggplot(pa_dat, aes(x = horizon, y = car_95, colour = region,
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.05)), limits = c(0, NA)) +
   labs(x = "Horizon (years)",
-       y = expression(CaR[95]~"(kg per tonne CO"[2]*"e)")) +
+       y = expression(CaR[95]~"(kg per tonne contracted)")) +
   theme_classic(base_size = 9) +
   theme(legend.position = "bottom", legend.box = "vertical",
         legend.margin = margin(0, 0, 0, 0),
@@ -352,7 +353,7 @@ pb <- pb_dat %>%
   scale_fill_manual(values = c(Fire = "#E67E22", Conversion = "#8C6D46"),
                     name = NULL) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.14))) +
-  labs(x = NULL, y = expression(CaR[95]~"at 100 years (kg per tonne)")) +
+  labs(x = NULL, y = expression(CaR[95]~"at 100 years (kg per tonne contracted)")) +
   theme_classic(base_size = 9) +
   theme(legend.position = "bottom", legend.margin = margin(0, 0, 0, 0))
 
@@ -373,7 +374,7 @@ pc <- ggplot(pc_dat, aes(x = horizon, y = car_95, colour = region,
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.10)), limits = c(0, NA)) +
   labs(x = "Horizon (years)",
-       y = expression(CaR[95]~"(kg per tonne CO"[2]*"e)")) +
+       y = expression(CaR[95]~"(kg per tonne contracted)")) +
   theme_classic(base_size = 9)
 
 tag_theme <- theme(plot.tag = element_text(face = "bold", size = 10))

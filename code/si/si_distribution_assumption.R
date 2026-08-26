@@ -218,7 +218,7 @@ p_car <- ggplot(car_comparison, aes(x = time_horizon, y = car_95_kg,
                                    "Spliced GPD" = "dashed")) +
   labs(
     x = "Time Horizon (years)",
-    y = expression("95% CaR (kg/tCO"[2]*"e)"),
+    y = "95% CaR (kg per tonne contracted)",
     color = NULL, linetype = NULL
   ) +
   theme_classic(base_size = 20) +

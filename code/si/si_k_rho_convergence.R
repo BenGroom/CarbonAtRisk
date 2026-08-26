@@ -123,7 +123,7 @@ p <- ggplot(sweep_results, aes(x = K, y = car_95, color = rho_label)) +
   labs(
     title = NULL,
     x = "Number of Projects (K)",
-    y = expression("95th Percentile CaR (kg per tonne CO"[2]*"e)"),
+    y = "95% CaR\n(kg per tonne contracted)",
     color = NULL
   ) +
   theme_classic(base_size = 22) +

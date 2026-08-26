@@ -1,7 +1,8 @@
 """Driver audit for the conversion-risk SI analysis.
 
 The conversion hazard used in `si_deforestation.R` is GFW tree-cover loss restricted
-to five non-fire anthropogenic drivers under the Sepulveda et al. (2024) attribution.
+to five non-fire anthropogenic drivers under the WRI/Google DeepMind 1 km dominant-driver
+attribution of Sims et al. (2025).
 Loss attributed to Wildfire, Other natural disturbances or Unknown is excluded. This
 script measures how much loss falls into each bucket, for two reasons:
 

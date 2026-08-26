@@ -26,6 +26,13 @@ library(ggrastr)   # panel (a)'s ~150k-point grid is rasterised; axes stay vecto
 FIG_WIDTH_MM <- 183
 FIG_WIDTH_IN <- FIG_WIDTH_MM / 25.4
 
+# theme_set changes ggplot2's default theme for the whole R session, not just
+# this script. run_all.R sources every script into one session, so without the
+# restore at the end of this file the SI figures that let patchwork supply the
+# panel theme (si_deforestation, si_distribution_assumption) render differently
+# under run_all.R than they do standalone, and stop matching the manuscript.
+default_theme <- theme_get()
+
 theme_set(
   theme_classic(base_size = 8) +
     theme(
@@ -530,7 +537,8 @@ cat("Generating SI portfolio figures...\n")
 rho_dacs_grid <- c(0, 0.2, 0.5)
 rho_forest_grid <- seq(0, 0.8, by = 0.01)
 
-sweep_grid <- expand_grid(n_DACS = seq(0, 500, by = 1), n_Forest = seq(0, 500, by = 1))
+sweep_grid <- expand_grid(n_DACS = seq(0, N_DACS_MAX, by = 1),
+                          n_Forest = seq(0, N_FOREST_MAX, by = 1))
 
 sweep_results <- expand_grid(
   rho_within_forest = rho_forest_grid,
@@ -544,6 +552,8 @@ sweep_results <- expand_grid(
       rho_between = 0
     ) %>%
       pick_min_cost_feasible(target = T_target, target_var = "p5") %>%
+      check_interior(paste0("cost-vs-rho sweep at rho_Forest = ", rho_within_forest,
+                            ", rho_DACCS = ", rho_within_dacs)) %>%
       mutate(rho_within_forest = rho_within_forest,
              rho_within_dacs   = rho_within_dacs)
   })
@@ -555,7 +565,7 @@ si_cost_rho <- sweep_results %>%
              color = factor(rho_within_dacs),
              group = factor(rho_within_dacs))) +
   geom_line(linewidth = 0.7) +
-  scale_color_manual(values = rho_colors, name = expression(rho[DACS])) +
+  scale_color_manual(values = rho_colors, name = expression(rho[DACCS])) +
   scale_y_continuous(labels = scales::dollar) +
   labs(x = expression(rho[Forest]), y = "Minimum cost") +
   theme_classic(base_size = 14) +
@@ -567,7 +577,7 @@ cat("  si_portfolio_cost_vs_rho.pdf saved\n")
 
 # SI: Effective price heatmap
 heat_max <- max(results_cm$n_DACS, results_cm$n_Forest) * 2.5
-heat_grid <- expand_grid(n_DACS = seq(0, heat_max, by = 2), n_Forest = seq(0, heat_max, by = 2))
+heat_grid <- expand_grid(n_DACS = seq(0, heat_max, by = 1), n_Forest = seq(0, heat_max, by = 1))
 
 heat_df_indep <- portfolio_stats(
   df = heat_grid, q = q, p = survival_probs, costs = project_costs,
@@ -586,10 +596,24 @@ opt_indep <- heat_df_indep %>% filter(feasible) %>%
 opt_cal <- heat_df_cal %>% filter(feasible) %>%
   slice_min(order_by = cost, n = 1, with_ties = FALSE)
 
-# The heatmap is drawn on a by=2 grid, so its marked optimum is up to one step
-# off the true one. The SI caption should quote the fine-grid value.
+# The heatmap grid now matches the solver's, so each plotted cross must coincide
+# with the fine-grid optimum the SI caption quotes. Assert it rather than assume:
+# a mismatch means the caption is describing a point the figure does not show.
 opt_indep_fine <- results_cm %>%
   filter(scenario == "Independent", rule == "R3: CaR")
+opt_cal_fine <- results_cm %>%
+  filter(scenario == "Correlated", rule == "R3: CaR")
+
+check_marker <- function(marked, fine, what) {
+  if (marked$n_DACS != fine$n_DACS || marked$n_Forest != fine$n_Forest) {
+    stop("Heatmap cross disagrees with the quoted optimum under ", what, ": ",
+         "plotted ", marked$n_DACS, "D+", marked$n_Forest, "F against ",
+         fine$n_DACS, "D+", fine$n_Forest, "F. The SI caption would be wrong.")
+  }
+  invisible(TRUE)
+}
+check_marker(opt_indep, opt_indep_fine, "independence")
+check_marker(opt_cal, opt_cal_fine, "calibrated correlations")
 
 make_eff_heatmap <- function(heat_data, opt_pt, subtitle) {
   ggplot() +
@@ -604,7 +628,7 @@ make_eff_heatmap <- function(heat_data, opt_pt, subtitle) {
                shape = 4, size = 4, stroke = 2, color = "red") +
     scale_fill_viridis_c(name = expression(c[eff]~("$"/tCO[2])),
                          option = "D", direction = -1,
-                         labels = function(x) paste0("$", sprintf("%.3f", x))) +
+                         labels = scales::label_dollar(accuracy = 1)) +
     labs(title = subtitle, x = "Number of DACCS projects",
          y = "Number of Forest projects") +
     coord_equal() +
@@ -674,13 +698,13 @@ sweep %>%
   mutate(across(-rho_F, ~round(.x, 2))) %>%
   as.data.frame() %>% print(row.names = FALSE)
 
-cat("\n--- Independence optimum (SI heatmap caption) ---\n")
-cat(sprintf("  fine grid:    %dD + %dF, cost $%s\n",
-            opt_indep_fine$n_DACS, opt_indep_fine$n_Forest,
-            format(opt_indep_fine$cost, big.mark = ",")))
-cat(sprintf("  heatmap grid: %dD + %dF, cost $%s\n",
+cat("\n--- Optima marked on the SI heatmap (quote these in the caption) ---\n")
+cat(sprintf("  independence: %dD + %dF, cost $%s\n",
             opt_indep$n_DACS, opt_indep$n_Forest,
             format(opt_indep$cost, big.mark = ",")))
+cat(sprintf("  calibrated:   %dD + %dF, cost $%s\n",
+            opt_cal$n_DACS, opt_cal$n_Forest,
+            format(opt_cal$cost, big.mark = ",")))
 
 cat("\n--- SI expected-value procurement rule (mu >= G, forest only) ---\n")
 ev <- stats_corr %>% filter(n_DACS == 0, mu >= T_target) %>%
@@ -692,3 +716,5 @@ cat(sprintf("  %dD + %dF, cost $%s, mu = %s, p5 = %s\n",
 
 cat("\n=======================================================\n")
 cat("\nDone.\n")
+
+theme_set(default_theme)

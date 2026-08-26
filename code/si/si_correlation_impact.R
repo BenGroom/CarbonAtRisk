@@ -129,7 +129,7 @@ p <- ggplot(
     title = "Impact of Correlation on Diversification Benefit",
     subtitle = div_0$region,
     x = "Time (years)",
-    y = expression("Carbon at Risk (kg per tonne CO"[2]*"e)"),
+    y = "Carbon at Risk (kg per tonne contracted)",
     color = NULL,
     linetype = NULL
   ) +

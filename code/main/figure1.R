@@ -178,7 +178,7 @@ panel_a <- ggplot() +
                   ylim = c(-y_max * 0.25, y_max * 1.05),
                   clip = "off") +
   labs(
-    x = expression("Carbon dioxide removed (kg per tonne CO"[2]*"e)"),
+    x = expression("Carbon dioxide removed (kg CO"[2]*")"),
     y = "Probability density"
   ) +
   theme_classic(base_size = 8) +
@@ -221,7 +221,8 @@ panel_b <- ggplot() +
            ymin = bar_bottom, ymax = bar_top,
            fill = GREEN_95, alpha = 0.25, color = "black", linewidth = 0.4) +
   annotate("text", x = G_OBLIG / 2, y = (bar_top + bar_bottom) / 2,
-           label = 'italic(G)*": obligation"', parse = TRUE, size = 2.2) +
+           label = paste0('italic(G)*": obligation ("*', round(G_OBLIG), '*" kg)"'),
+           parse = TRUE, size = 2.2) +
   # === Contract bar: Buffer portion (red) ===
   annotate("rect",
            xmin = G_OBLIG, xmax = Q_TOTAL,
@@ -267,8 +268,11 @@ panel_b <- ggplot() +
   annotate("segment", x = G_OBLIG, xend = G_OBLIG,
            y = -y_max * 0.02, yend = bar_bottom,
            linetype = "dashed", color = RED_95, linewidth = 0.5) +
+  annotate("point", x = G_OBLIG, y = 0, shape = 21,
+           fill = GREEN_95, color = "black", size = 1.6, stroke = 0.3) +
   annotate("text", x = G_OBLIG, y = -y_max * 0.05,
-           label = expression(italic(D)[5] == italic(G)),
+           label = paste0('italic(D)[5] == italic(G)*" = ', round(G_OBLIG), ' kg"'),
+           parse = TRUE,
            size = 1.8, color = RED_95) +
   # === Dotted line at Q ===
   annotate("segment", x = Q_TOTAL, xend = Q_TOTAL,
@@ -322,7 +326,7 @@ panel_b <- ggplot() +
                   ylim = c(-y_max * 0.40, brace_y + y_max * 0.10),
                   clip = "off") +
   labs(
-    x = expression("Carbon dioxide removed (kg per tonne CO"[2]*"e)"),
+    x = expression("Carbon dioxide removed (kg CO"[2]*")"),
     y = NULL
   ) +
   theme_classic(base_size = 8) +

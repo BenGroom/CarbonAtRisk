@@ -106,7 +106,7 @@ p <- ggplot(plot_df, aes(x = time_horizon, y = car_95_pct,
   ) +
   labs(
     x = "Time Horizon (years)",
-    y = expression("95% CaR (% of initial carbon)"),
+    y = expression("95% CaR (% of contracted volume)"),
     color = expression(gamma ~ "(annual trend)"),
     linetype = expression(gamma ~ "(annual trend)")
   ) +

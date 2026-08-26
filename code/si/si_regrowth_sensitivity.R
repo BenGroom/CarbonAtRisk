@@ -96,7 +96,7 @@ p <- ggplot(plot_df, aes(x = time_horizon, y = car_95_pct,
   labs(
     title = "California: Sensitivity to regrowth rate",
     x = "Time Horizon (years)",
-    y = expression("95% CaR (% of initial carbon)"),
+    y = expression("95% CaR (% of contracted volume)"),
     color = "Regrowth rate",
     linetype = "Regrowth rate"
   ) +

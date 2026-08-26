@@ -128,7 +128,7 @@ fig <- ggplot() +
   coord_cartesian(xlim = c(0, 1420),
                   ylim = c(row_gap - y_max * 0.08, y_max * 1.12),
                   clip = "off") +
-  labs(x = expression("Carbon dioxide removed (kg per tonne CO"[2]*"e)"),
+  labs(x = expression("Carbon dioxide removed (kg CO"[2]*")"),
        y = "Probability density") +
   theme_classic(base_size = 8) +
   theme(plot.margin = margin(4, 4, 4, 4),

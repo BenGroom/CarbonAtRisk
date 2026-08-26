@@ -186,7 +186,7 @@ panel_b <- ggplot(car_results_short, aes(x = time_horizon, y = car_kg_tonne, col
   labs(
     title = NULL,
     x = "Time Horizon (years)",
-    y = "CaR (kg/tonne)",
+    y = "95% CaR (kg per tonne contracted)",
     color = NULL
   ) +
   theme_classic(base_size = 8) +
@@ -272,7 +272,7 @@ panel_d <- ggplot(pdf_data, aes(x = carbon_removed, fill = projects)) +
   scale_color_manual(values = c("K = 1" = "#B7410E", "K = 100" = "#2171B5"), guide = "none") +
   labs(
     title = NULL,
-    x = "Carbon Removed (kg/tonne)",
+    x = "Carbon removed (kg per tonne contracted)",
     y = "Density",
     fill = NULL
   ) +
@@ -355,7 +355,7 @@ panel_e <- ggplot(sweep_df, aes(x = rho, y = reduction_pct)) +
   labs(
     title = NULL,
     x = expression("Correlation between projects ("*rho*")"),
-    y = "Change in CaR (%)\nfrom K=1 to K=100"
+    y = "Change in CaR, K=1 to K=100\n(% of single-project CaR)"
   ) +
   theme_classic(base_size = 8)
 

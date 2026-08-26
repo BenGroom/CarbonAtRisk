@@ -114,7 +114,7 @@ pa <- ggplot() +
   scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
   coord_cartesian(xlim = c(0, 200), ylim = c(0, NA)) +
   labs(x = "Horizon (years)",
-       y = expression(CaR[95]~"(kg per tonne CO"[2]*"e)")) +
+       y = expression(CaR[95]~"(kg per tonne contracted)")) +
   theme_classic(base_size = 9) +
   theme(legend.position = "bottom", legend.box = "vertical",
         legend.spacing.y = unit(0.02, "cm"))

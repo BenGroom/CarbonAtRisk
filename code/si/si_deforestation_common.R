@@ -29,9 +29,10 @@ REGIONS <- tibble::tribble(
 
 #' Load the annual conversion-rate panel for the three focal regions.
 #'
-#' The panel is GFW `gadm__tcl__adm1_change` v20260424 with Sepulveda et al. (2024)
-#' driver attribution, restricted to five non-fire anthropogenic drivers, so wildfire
-#' is excluded at source and the two hazards are disjoint.
+#' The panel is GFW `gadm__tcl__adm1_change` v20260424 with the WRI/Google DeepMind
+#' 1 km dominant-driver attribution of Sims et al. (2025), restricted to five non-fire
+#' anthropogenic drivers, so wildfire is excluded at source and the two hazards are
+#' disjoint.
 #'
 #' The file ships with the repository as a three-region extract (USA/5, BRA/12,
 #' IDN/23; 2001--2025, 75 rows). Columns are iso, adm1, year, delta, where delta is

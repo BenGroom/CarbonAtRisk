@@ -151,8 +151,11 @@ plot_daccs_car <- function(loss_pct, subtitle) {
   car_95 <- 100 - threshold_95
 
   n_sim <- length(stored_pct)
-  hist_data <- hist(stored_pct, breaks = 30, plot = FALSE)
-  bin_width <- hist_data$breaks[2] - hist_data$breaks[1]
+  # One binning drives both the bars and the density rescaling. Taking the width
+  # from a separate hist() call left the overlay scaled to a different bin width
+  # than the bars were drawn with, so the curve floated above them.
+  n_bins <- 43
+  bin_width <- diff(range(stored_pct)) / (n_bins - 1)
 
   dens <- density(stored_pct)
   density_df <- data.frame(x = dens$x, y = dens$y * bin_width * n_sim) %>%
@@ -169,7 +172,8 @@ plot_daccs_car <- function(loss_pct, subtitle) {
   arrow_y <- max(density_df$y) * 0.22
 
   ggplot(data.frame(stored = stored_pct), aes(x = stored)) +
-    geom_histogram(aes(y = after_stat(count)), bins = 43,
+    geom_histogram(aes(y = after_stat(count)), binwidth = bin_width,
+                   boundary = bin_width / 2,
                    fill = "gray85", color = "white", alpha = 0.6) +
     geom_area(data = shade_95, aes(x = x, y = y, fill = band),
               alpha = 0.6, position = "identity") +
