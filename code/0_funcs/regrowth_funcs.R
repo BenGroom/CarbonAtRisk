@@ -3,9 +3,9 @@
 #' Computes post-fire regrowth rates for the CaR simulation using
 #' the parametric height-recovery and allometric equations from:
 #'
-#'   Zang, Y. et al. (2024). "A global dataset of forest regrowth
+#'   Zang, J., Qiu, F. & Zhang, Y. (2024). "A global dataset of forest regrowth
 #'   following wildfires." Scientific Data, 11:1052.
-#'   doi:10.1038/s41597-024-03891-5
+#'   doi:10.1038/s41597-024-03896-8
 #'
 #' Zang et al. fitted satellite-derived canopy height recovery curves
 #' for 8 macro-regions globally. For each region, two equations are
@@ -33,7 +33,6 @@
 #'   - Post-fire western US conifer recovery half-times of 25-50 years
 #'     (Stevens-Rumann et al. 2018), implying r = 1.4-2.8%/yr
 #' We set California r = 2.0%/yr as the midpoint of these estimates.
-#' Sensitivity to this choice is reported in Supplementary Section X.
 
 # "Zang et al. (2024) Table 1 parameters" ----------
 

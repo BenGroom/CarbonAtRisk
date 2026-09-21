@@ -52,7 +52,7 @@ FIRE_DRIVER = "Wildfire"
 NATURAL_DRIVER = "Other natural disturbances"
 UNKNOWN_DRIVER = "Unknown"
 
-# (iso, adm1) as used in jurisdiction_annual_rates.csv, matching the EFFIS cache keys
+# (iso, adm1) as used in conversion_rates.csv, matching the EFFIS cache keys
 REGIONS = {("USA", 5): "California", ("BRA", 12): "Mato Grosso", ("IDN", 23): "Papua"}
 
 OUT_DIR = Path("outputs/si")

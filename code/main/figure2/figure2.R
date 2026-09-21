@@ -5,7 +5,7 @@
 #   b  95% CaR over 1-200 year horizons, three regions
 #   c  CaR reduction from K=1 to K=100 against inter-project correlation
 #
-# SI (built here, from the panels no longer in the main text):
+# SI (also built here):
 #   si_rho_distance.pdf  Pairwise correlation against distance (California)
 #   si_density_k.pdf     Delivery densities, K=1 vs K=100, three correlations
 #
@@ -37,7 +37,6 @@ source("code/0_funcs/regrowth_funcs.R")
 # Configuration ---------------------------------------------------------------
 GPKG_PATH <- "data/admin_regrowth_with_gpp.gpkg"
 EFFIS_CACHE <- "data/effis_cache"
-PROJECT_AREA <- 100000
 CLIMATE_RATE <- 0.005
 RESCALE_FIRESIZE <- FALSE
 N_SIMULATIONS <- 5000
@@ -77,7 +76,6 @@ results <- process_selected_geometries(
   gdf_gadm, SELECTED_REGIONS,
   regrowth_rates = REGROWTH_RATES,
   rescale_firesize = RESCALE_FIRESIZE,
-  project_area = PROJECT_AREA,
   n_simulations = N_SIMULATIONS,
   time_horizons = TIME_HORIZONS,
   cache_dir = EFFIS_CACHE

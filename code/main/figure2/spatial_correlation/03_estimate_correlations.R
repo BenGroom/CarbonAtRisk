@@ -227,7 +227,7 @@ for (country in TARGET_COUNTRIES) {
     }
 
     burn_fracs <- tryCatch({
-      calculate_burn_fractions(fires_df, forest_json$lc1, project_area = 100000)
+      calculate_burn_fractions(fires_df, forest_json$lc1, rescale_firesize = FALSE)
     }, error = function(e) NULL)
 
     if (is.null(burn_fracs)) {

@@ -2,21 +2,43 @@
 
 Replication code for Lee et al. 2026.
 
-The default pipeline reproduces all figures in approximately 2 minutes using pre-computed intermediate data (MODIS spatial correlations and DACCS Monte Carlo results) included in this repository. Code to download and process the raw MODIS burned-area data from NASA Earthdata is also included but is not run by default; see Step 0 below.
+The default pipeline reproduces every figure in the paper and the SI in roughly 15 minutes, using the pre-computed intermediate data (MODIS spatial correlations and DACCS Monte Carlo results) included in this repository. Code to download and process the raw MODIS burned-area data from NASA Earthdata is also included but is not run by default; see Step 0 below.
 
 ## Requirements
 
-- **R** (>= 4.1; tested with R 4.5.0)
-- **R packages**: `tidyverse` (2.0.0), `patchwork` (1.3.0), `truncnorm` (1.0-9), `sf` (1.0-21), `terra` (1.8-70), `evd` (2.3-7.1), `ggrepel` (0.9.6), `scales` (1.4.0), `httr`, `jsonlite`, `grid`, `MASS`, `parallel`
-- **NASA Earthdata account**: Only required if re-running the MODIS spatial correlation pipeline from scratch (Step 0). Not needed for the default run.
+- **R** >= 4.1.
+- **NASA Earthdata account**: only required if re-running the MODIS spatial correlation pipeline from scratch (Step 0). Not needed for the default run.
+- **Python** >= 3.9 with `pandas` and `requests`: only required for `code/si/si_defor_driver_audit.py`, which is optional and is not called by `run_all.R`.
 
-Install all R packages:
+Install the R packages:
 
 ```r
-install.packages(c("tidyverse", "patchwork", "truncnorm", "sf", "httr",
-                    "jsonlite", "terra", "MASS", "evd", "ggrepel",
-                    "scales", "parallel"))
+install.packages(c("tidyverse", "patchwork", "truncnorm", "sf", "terra",
+                   "evd", "ggrepel", "ggrastr", "scales", "httr", "jsonlite"))
 ```
+
+`grid`, `parallel`, `MASS` and `stats` ship with R and do not need installing.
+
+### Environment used
+
+The shipped outputs in `outputs/` were produced with the following versions. Any
+reasonably recent combination should reproduce them, but these are the exact ones.
+
+| Package | Version | Package | Version | Package | Version |
+|---|---|---|---|---|---|
+| `tidyverse` | 2.0.0 | `sf` | 1.0.21 | `httr` | 1.4.7 |
+| `ggplot2` | 4.0.3 | `terra` | 1.8.70 | `jsonlite` | 2.0.0 |
+| `dplyr` | 1.1.4 | `evd` | 2.3.7.1 | `MASS` | 7.3.65 |
+| `tidyr` | 1.3.1 | `ggrepel` | 0.9.6 | `grid` | 4.5.0 |
+| `purrr` | 1.1.0 | `ggrastr` | 1.0.2 | `parallel` | 4.5.0 |
+| `patchwork` | 1.3.2 | `scales` | 1.4.0 | `truncnorm` | 1.0.9 |
+
+- **R** 4.5.0 (2025-04-11), platform `aarch64-apple-darwin20`
+- **`sf` system libraries**: GEOS 3.13.0, GDAL 3.8.5, PROJ 9.5.1
+- **Python** 3.10.11, `pandas` 2.3.3, `requests` 2.32.5 (for the optional driver audit only)
+
+`ggplot2` 4.0.3 was built under R 4.5.2 while the run used R 4.5.0. This produces a
+harmless startup warning and does not affect results.
 
 ## Quick Start
 
@@ -30,26 +52,41 @@ This runs the full pipeline end-to-end and writes all figures to `outputs/`.
 
 ### Runtime
 
-Measured on an Apple M4 MacBook Pro. With default settings (`SKIP_MODIS <- TRUE`, `OVERWRITE_DACCS_FLAG <- FALSE`), which use the pre-computed MODIS correlation estimates and cached DACCS simulations included in this repository:
+Measured on an Apple M4 MacBook Pro with default settings (`SKIP_MODIS <- TRUE`, `OVERWRITE_DACCS_FLAG <- FALSE`), which use the pre-computed MODIS correlation estimates and cached DACCS simulations included in this repository:
 
 | Step | Script | Time |
 |------|--------|------|
-| Figure 1 (CaR definition) | `figure1.R` | 2 sec |
-| Figure 2 (Forest CaR, 1,000 MC sims x 3 regions + correlation sweep) | `figure2.R` | 53 sec |
-| Figure 3 (DACCS, loads cached 10,000 MC sims) | `figure3.R` | 1 sec |
-| Figure 4 (Portfolio design, grid search) | `figure4.R` | 16 sec |
-| SI — VaR illustration | `si_1_var.R` | < 1 sec |
-| SI — Distribution assumption (GPD) | `si_distribution_assumption.R` | 2 sec |
-| SI — K-rho convergence (45 cells) | `si_k_rho_convergence.R` | 40 sec |
-| SI — Correlation impact | `si_correlation_impact.R` | 5 sec |
-| SI — Gamma sensitivity | `si_gamma_sensitivity.R` | 1 sec |
-| SI — Regrowth sensitivity | `si_regrowth_sensitivity.R` | 1 sec |
-| SI — Fire history | `si_fire_history.R` | 1 sec |
-| **Total** | | **~2 minutes** |
+| 1a Figure 1 (CaR definition) | `figure1.R` | 2 sec |
+| 1b Figure 2 (forest CaR, 3 regions + 21-point correlation sweep at K = 1, 10, 100) | `figure2.R` | **470 sec** |
+| 1c Figure 3 (DACCS, loads cached MC draws) | `figure3.R` | 2 sec |
+| 1d Figure 4 (portfolio grid search + 6 SI panels) | `figure4.R` | 95 sec |
+| 2a SI VaR illustration | `si_1_var.R` | < 1 sec |
+| 2b SI distribution assumption (GPD) | `si_distribution_assumption.R` | 1 sec |
+| 2c SI K-rho convergence (54 cells, K up to 500) | `si_k_rho_convergence.R` | **382 sec** |
+| 2d SI correlation impact | `si_correlation_impact.R` | 26 sec |
+| 2e SI gamma sensitivity | `si_gamma_sensitivity.R` | 2 sec |
+| 2f SI regrowth sensitivity | `si_regrowth_sensitivity.R` | < 1 sec |
+| 2g SI fire history | `si_fire_history.R` | < 1 sec |
+| 2h SI CaR phases | `si_car_phases.R` | < 1 sec |
+| 2i SI conversion record | `si_deforestation_history.R` | < 1 sec |
+| 2j SI conversion risk | `si_deforestation.R` | 5 sec |
+| 2k SI DACCS correlation sweep | `si_rho_daccs_sweep.R` | 4 sec |
+| 2l SI CaR decomposition when Q < mu | `si_car_negative_gap.R` | < 1 sec |
+| **Total** | | **~16 minutes** |
+
+Two steps account for almost all of the runtime: **`figure2.R` (about 8 minutes)** and
+**`si_k_rho_convergence.R` (about 6 minutes)**. Both run large Monte Carlo sweeps at
+`N_SIMULATIONS = 5000` over many projects (`figure2.R` sweeps 21 correlation values at
+K = 1, 10 and 100; `si_k_rho_convergence.R` covers 9 values of K up to 500 by 6
+correlations). They print progress as they go, but each individual cell can take tens of
+seconds, so long gaps between lines are expected and do not mean the run has hung.
+
+Two timed runs on this machine gave 13 and 16 minutes, so treat these figures as
+indicative rather than exact; they move with background load.
 
 Setting `SKIP_MODIS <- FALSE` adds the MODIS download and processing pipeline (Step 0), which requires a NASA Earthdata account and takes approximately 1-2 hours on first run depending on network speed. This is not needed for replication, as the pre-computed correlation outputs are included in the repository.
 
-Setting `OVERWRITE_DACCS_FLAG <- TRUE` reruns the DACCS Monte Carlo simulations from scratch rather than loading cached results (adds ~2 minutes).
+Setting `OVERWRITE_DACCS_FLAG <- TRUE` reruns the DACCS Monte Carlo simulations from scratch rather than loading cached results (adds roughly 2 minutes).
 
 ## Pipeline Steps
 
@@ -58,17 +95,26 @@ Setting `OVERWRITE_DACCS_FLAG <- TRUE` reruns the DACCS Monte Carlo simulations 
 | 0a | Download MODIS burned-area tiles | `code/main/figure2/spatial_correlation/01_download_modis.R` | NASA Earthdata (remote) | Raw HDF files |
 | 0b | Process burned area to grid cells | `code/main/figure2/spatial_correlation/02_process_burned_area.R` | Step 0a output | Processed rasters |
 | 0c | Estimate pairwise spatial correlations | `code/main/figure2/spatial_correlation/03_estimate_correlations.R` | Step 0b output | `outputs/intermediate/correlation_results/` |
-| 1a | Figure 1 — CaR definition & buffer interpretation | `code/main/figure1.R` | None (schematic) | `outputs/main/figure1.pdf` |
-| 1b | Figure 2 — Forest fire CaR, diversification & spatial correlation | `code/main/figure2/figure2.R` | EFFIS fire + forest cover, Zang regrowth rates, MODIS correlations (Step 0c) | `outputs/main/figure2.pdf` |
-| 1c | Figure 3 — DACCS/BECCS geological storage CaR | `code/main/figure3/figure3.R` | SSC parameters (hard-coded from Alcalde et al.) | `outputs/main/figure3.pdf` |
-| 1d | Figure 4 — Portfolio design & effective cost | `code/main/figure4/figure4.R` | Calibrated from Figs 2-3 outputs (survival probabilities, costs) | `outputs/main/figure4.pdf` |
-| 2a | SI — VaR illustration (Fig S1) | `code/si/si_1_var.R` | None (schematic) | `outputs/si/si_1_var.pdf` |
-| 2b | SI — Distribution assumption sensitivity (Fig S3) | `code/si/si_distribution_assumption.R` | EFFIS fire + forest cover, Zang regrowth rates | `outputs/si/si_distribution_assumption.pdf` |
-| 2c | SI — K-rho convergence (Fig S6) | `code/si/si_k_rho_convergence.R` | EFFIS fire + forest cover, Zang regrowth rates | `outputs/si/si_k_rho_convergence.pdf` |
-| 2d | SI — Correlation impact on CaR (Fig S7) | `code/si/si_correlation_impact.R` | EFFIS fire + forest cover, Zang regrowth rates | `outputs/si/si_correlation_impact.pdf` |
-| 2e | SI — Gamma (climate trend) sensitivity (Fig S5) | `code/si/si_gamma_sensitivity.R` | EFFIS fire + forest cover, Zang regrowth rates | `outputs/si/si_gamma_sensitivity.pdf` |
-| 2f | SI — Regrowth rate sensitivity (Fig S8) | `code/si/si_regrowth_sensitivity.R` | EFFIS fire + forest cover, Zang regrowth rates | `outputs/si/si_regrowth_sensitivity.pdf` |
-| 2g | SI — Fire history bar charts (Fig S4) | `code/si/si_fire_history.R` | EFFIS fire | `outputs/si/si_fire_history.pdf` |
+| 1a | CaR definition and buffer interpretation | `code/main/figure1.R` | None (schematic) | `outputs/main/figure1.pdf`, `subfigs/figure1{a,b}.pdf` |
+| 1b | Forest fire CaR, diversification, spatial correlation | `code/main/figure2/figure2.R` | EFFIS fire + forest cover, Zang regrowth rates, MODIS correlations (Step 0c) | `outputs/main/figure2.pdf`, `subfigs/figure2_{a..e}.pdf`, `outputs/si/si_rho_distance.pdf`, `si_density_k.pdf`, `outputs/intermediate/figure2_numbers.csv` |
+| 1c | DACCS geological storage CaR | `code/main/figure3/figure3.R` | SSC parameters (hard-coded from Alcalde et al.) | `outputs/main/figure3.pdf`, `outputs/si/si_daccs_{1000,10000}yr.pdf`, `outputs/intermediate/daccs_mc_{raw.rds,results.csv}` |
+| 1d | Portfolio design and effective cost | `code/main/figure4/figure4.R` | Calibrated from Figs 2-3 (survival probabilities, costs) | `outputs/main/figure4.pdf`, six `outputs/si/si_portfolio_*.pdf` |
+| 2a | VaR illustration | `code/si/si_1_var.R` | None (schematic) | `outputs/si/si_1_var.pdf` |
+| 2b | Fire distribution assumption, empirical vs spliced GPD | `code/si/si_distribution_assumption.R` | EFFIS fire + forest cover, Zang regrowth rates | `outputs/si/si_distribution_assumption.pdf`, `si_car_empirical_vs_gpd.{pdf,csv}` |
+| 2c | Portfolio CaR convergence in K and rho | `code/si/si_k_rho_convergence.R` | EFFIS fire + forest cover, Zang regrowth rates | `outputs/si/si_k_rho_convergence.{pdf,csv}` |
+| 2d | Effect of inter-project correlation on the diversification benefit | `code/si/si_correlation_impact.R` | EFFIS fire + forest cover, Zang regrowth rates | `outputs/si/si_correlation_impact.pdf` |
+| 2e | Sensitivity to the climate trend in the burn rate (gamma) | `code/si/si_gamma_sensitivity.R` | EFFIS fire + forest cover, Zang regrowth rates | `outputs/si/si_gamma_sensitivity.{pdf,csv}` |
+| 2f | Sensitivity to the regrowth rate | `code/si/si_regrowth_sensitivity.R` | EFFIS fire + forest cover, Zang regrowth rates | `outputs/si/si_regrowth_sensitivity.{pdf,csv}` |
+| 2g | Annual burn fraction record for the three focal regions | `code/si/si_fire_history.R` | EFFIS fire | `outputs/si/si_fire_history.pdf` |
+| 2h | The three phases of the CaR curve against the moving equilibrium | `code/si/si_car_phases.R` | EFFIS fire + forest cover, Zang regrowth rates | `outputs/si/si_car_phases.pdf` |
+| 2i | Conversion (non-fire) hazard record for the three regions | `code/si/si_deforestation_history.R` | `data/conversion_rates.csv`, EFFIS fire | `outputs/si/si_deforestation_history.pdf` |
+| 2j | Forest CaR extended with a conversion hazard | `code/si/si_deforestation.R` | `data/conversion_rates.csv`, EFFIS fire + forest cover, Zang regrowth rates | `outputs/si/si_deforestation.pdf`, `si_deforestation_results.csv` |
+| 2k | Sensitivity of the portfolio result to the within-DACCS correlation | `code/si/si_rho_daccs_sweep.R` | Portfolio calibration (as Fig 4) | `outputs/si/si_rho_daccs_sweep.pdf` |
+| 2l | CaR decomposition when contracted volume falls below expected delivery | `code/si/si_car_negative_gap.R` | None (schematic) | `outputs/si/si_car_negative_gap.pdf` |
+
+`code/si/si_deforestation_common.R` is a shared helper sourced by steps 2g, 2h, 2i and 2j. It is not a pipeline step and is not run on its own.
+
+`code/si/si_defor_driver_audit.py` is an optional audit of the GFW driver attribution behind `data/conversion_rates.csv`. It is not called by `run_all.R`; run it with `python3 code/si/si_defor_driver_audit.py` to regenerate `outputs/si/si_defor_driver_audit.csv`.
 
 Step 0 is skipped by default (`SKIP_MODIS <- TRUE`) because intermediate correlation outputs are included in the repository. Set `SKIP_MODIS <- FALSE` in `run_all.R` to rerun from scratch.
 
@@ -91,11 +137,11 @@ Set at the top of `run_all.R`:
 │   │   ├── fire_funcs.R               # Fire simulation, copula sampling, EFFIS data functions
 │   │   ├── regrowth_funcs.R           # Zang et al. (2024) regrowth rate calibration
 │   │   ├── portfolio_funcs.R          # Bernoulli portfolio model, cost optimisation
-│   │   └── prepare_gpkg_subset.R      # Extract 3-region subset from full GeoPackage (transparency only)
+│   │   └── prepare_gpkg_subset.R      # Extract 3-region subset from the full global GeoPackage (transparency only; the full file is not shipped)
 │   ├── main/
 │   │   ├── figure1.R                  # Figure 1: CaR definition schematic
 │   │   ├── figure2/
-│   │   │   ├── figure2.R             # Figure 2: Forest CaR (composite 5-panel)
+│   │   │   ├── figure2.R             # Figure 2: Forest CaR (3-panel, plus 2 SI figures)
 │   │   │   ├── spatial_correlation/   # MODIS correlation pipeline (Steps 0a-0c)
 │   │   │   │   ├── config.R
 │   │   │   │   ├── helpers.R
@@ -108,24 +154,36 @@ Set at the top of `run_all.R`:
 │   │   │   ├── ssc_offshore.R        # Offshore scenario parameters
 │   │   │   └── ssc_onshore.R         # Onshore scenario parameters
 │   │   └── figure4/
-│   │       └── figure4.R             # Figure 4: Portfolio design (6-panel)
-│   └── si/                            # Supplementary Information figures
-│       ├── si_1_var.R
-│       ├── si_correlation_impact.R
-│       ├── si_distribution_assumption.R
-│       ├── si_fire_history.R
-│       ├── si_gamma_sensitivity.R
-│       ├── si_k_rho_convergence.R
-│       └── si_regrowth_sensitivity.R
+│   │       └── figure4.R             # Figure 4: Portfolio design (plus 6 SI figures)
+│   └── si/                            # Supplementary Information figures (steps 2a-2l)
+│       ├── si_1_var.R                  # 2a VaR illustration
+│       ├── si_distribution_assumption.R  # 2b empirical vs spliced GPD tail
+│       ├── si_k_rho_convergence.R     # 2c portfolio CaR against K and rho
+│       ├── si_correlation_impact.R    # 2d correlation vs diversification benefit
+│       ├── si_gamma_sensitivity.R     # 2e climate trend sensitivity
+│       ├── si_regrowth_sensitivity.R  # 2f regrowth rate sensitivity
+│       ├── si_fire_history.R          # 2g burn fraction record
+│       ├── si_car_phases.R            # 2h CaR curve phases
+│       ├── si_deforestation_history.R # 2i conversion hazard record
+│       ├── si_deforestation.R         # 2j CaR with conversion hazard
+│       ├── si_rho_daccs_sweep.R       # 2k within-DACCS correlation sweep
+│       ├── si_car_negative_gap.R      # 2l decomposition when Q < mu
+│       ├── si_deforestation_common.R  # shared helper for 2g-2j (not a step)
+│       └── si_defor_driver_audit.py   # optional GFW driver audit (not in run_all.R)
 ├── data/
 │   ├── admin_regrowth_with_gpp.gpkg   # Region boundaries and geo-IDs (3 regions only)
-│   └── effis_cache/                   # Cached EFFIS API responses (3 regions, 2002-2023)
-│       ├── effis_fire_USA_5_1.csv
-│       ├── effis_fire_BRA_12_1.csv
-│       ├── effis_fire_IDN_23_1.csv
-│       ├── effis_forest_USA_5_1.rds
-│       ├── effis_forest_BRA_12_1.rds
-│       └── effis_forest_IDN_23_1.rds
+│   ├── conversion_rates.csv           # Non-fire conversion hazard panel (shipped input)
+│   ├── effis_cache/                   # Cached EFFIS API responses (3 regions, 2002-2023)
+│   │   ├── effis_fire_USA_5_1.csv
+│   │   ├── effis_fire_BRA_12_1.csv
+│   │   ├── effis_fire_IDN_23_1.csv
+│   │   ├── effis_forest_USA_5_1.rds
+│   │   ├── effis_forest_BRA_12_1.rds
+│   │   └── effis_forest_IDN_23_1.rds
+│   └── gfw_cache/                     # Cached GFW tree-cover-loss-by-driver responses
+│       ├── USA_change.json
+│       ├── BRA_change.json
+│       └── IDN_change.json
 └── outputs/
     ├── main/                          # Main paper figures (PDFs)
     │   ├── figure1.pdf
@@ -182,7 +240,8 @@ threshold, taken from GFW's extent endpoint at the time the panel was built:
 | IDN/23 (Papua)       | 29.568 Mha |
 
 To verify the shipped panel, divide the numerator computed from the cache by the
-corresponding figure above; this reproduces `delta` exactly in all 75 rows.
+corresponding figure above; this reproduces `delta` in all 75 rows, to the six
+decimal places at which `delta` is stored.
 
 Note the two vintages differ: the loss panel runs to 2025, while the driver layer
 (v1.2) covers 2001-2024, so loss in the final year carries the last available
@@ -192,8 +251,8 @@ driver classification.
 
 | Parameter | Value | Set in |
 |-----------|-------|--------|
-| Forest MC simulations | 1,000 | `code/0_funcs/fire_funcs.R` |
-| DACCS MC simulations | 10,000 | `code/main/figure3/figure3.R` |
+| Forest MC simulations | 5,000 | `code/main/figure2/figure2.R` (`N_SIMULATIONS`) |
+| DACCS MC simulations | 5,000 | `code/main/figure3/figure3.R` (`N_SIMULATIONS`) |
 | Climate trend (gamma) | 0.5%/yr | `code/0_funcs/fire_funcs.R` |
 | Regrowth rate, California | 2.0%/yr (Zang et al. 2024, adjusted) | `code/0_funcs/regrowth_funcs.R` |
 | Regrowth rate, Mato Grosso | 3.0%/yr (Zang et al. 2024) | `code/0_funcs/regrowth_funcs.R` |

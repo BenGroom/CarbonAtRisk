@@ -11,7 +11,6 @@ library(dplyr)
 # ~15% adrift from the main text.
 EFFIS_CACHE      <- "data/effis_cache"
 DEFOR_PANEL      <- "data/conversion_rates.csv"
-PROJECT_AREA     <- 100000
 CLIMATE_RATE     <- 0.005      # gamma; applies to fire only
 RESCALE_FIRESIZE <- FALSE
 N_SIMULATIONS    <- 5000
@@ -79,7 +78,6 @@ load_burn_fractions <- function(cache_dir = EFFIS_CACHE) {
     fires  <- read.csv(file.path(cache_dir, sprintf("effis_fire_%s.csv", effis_key)))
     forest <- readRDS(file.path(cache_dir, sprintf("effis_forest_%s.rds", effis_key)))
     bf <- calculate_burn_fractions(fires, as.numeric(forest$lc1),
-                                   project_area = PROJECT_AREA,
                                    rescale_firesize = RESCALE_FIRESIZE)
     tibble::tibble(region = region, burn_fraction = as.numeric(bf))
   })

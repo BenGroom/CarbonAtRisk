@@ -18,7 +18,6 @@ source("code/0_funcs/regrowth_funcs.R")
 
 # Parameters must match figure2.R ---------------------------------------------
 EFFIS_CACHE      <- "data/effis_cache"
-PROJECT_AREA     <- 100000
 CLIMATE_RATE     <- 0.005
 RESCALE_FIRESIZE <- FALSE
 N_SIMULATIONS    <- 5000
@@ -49,7 +48,6 @@ car_curves <- pmap_dfr(REGIONS, function(key, region, colour) {
   forest <- readRDS(file.path(EFFIS_CACHE, sprintf("effis_forest_%s.rds", key)))
 
   bf <- calculate_burn_fractions(fires, as.numeric(forest$lc1),
-                                 project_area = PROJECT_AREA,
                                  rescale_firesize = RESCALE_FIRESIZE)
 
   r <- REGROWTH_RATES[[region]]
@@ -74,10 +72,10 @@ region_cols <- setNames(REGIONS$colour, REGIONS$region)
 
 # Reference: the MOVING equilibrium, E[L*_t] = bbar(1+gamma(t-1)) / (r + bbar(1+gamma(t-1))).
 #
-# The static gamma = 0 fixed point is the wrong reference for these curves: they
-# are simulated with gamma = 0.005, so they correctly run away from it and the
-# line reads as unexplained. The moving equilibrium is the target the system is
-# actually chasing, and the mean loss should track it once the transient is over.
+# The curves are simulated with gamma = 0.005, so they drift away from the static
+# gamma = 0 fixed point. The moving equilibrium is the target the system actually
+# chases, and the mean loss tracks it once the transient is over. The static value
+# is still reported below as an analytic reference point.
 equil_static <- car_curves %>%
   distinct(region, beta_bar, r) %>%
   mutate(equilibrium = 1000 * beta_bar / (r + beta_bar))

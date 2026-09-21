@@ -25,7 +25,6 @@ GPKG_PATH <- "data/admin_regrowth_with_gpp.gpkg"
 EFFIS_CACHE <- "data/effis_cache"
 CLIMATE_RATE <- 0.005
 N_SIMULATIONS <- 5000
-ESTATE_AREA <- 1000
 REGROWTH_RATES <- get_regrowth_rates()
 
 REGROWTH_MULTIPLIERS <- c(0.5, 1.0, 1.5)
@@ -46,7 +45,7 @@ forest_json <- fetch_forest_indicators(geo_id, cache_dir = EFFIS_CACHE)
 base_regrowth <- REGROWTH_RATES[["California"]]
 
 burn_fracs <- calculate_burn_fractions(
-  fires_df, forest_json$lc1, project_area = ESTATE_AREA,
+  fires_df, forest_json$lc1,
   rescale_firesize = FALSE
 )
 

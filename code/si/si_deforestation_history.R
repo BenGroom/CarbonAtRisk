@@ -6,9 +6,6 @@
 # Panel a: annual conversion rate by region, with full-record and period means.
 # Panel b: mean fire hazard against mean conversion hazard, per region.
 #
-# Panel b carries the finding that answers Reviewer 2 most directly: in Papua the
-# hazard the paper models (fire) is smaller than the hazard it omits (conversion).
-#
 # Run from repo root:  Rscript code/si/si_deforestation_history.R
 
 library(tidyverse)

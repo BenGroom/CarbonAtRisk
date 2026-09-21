@@ -28,7 +28,6 @@ fire_hist <- pmap_dfr(REGIONS, function(region, effis_key, iso, adm1, gid_1) {
   fires  <- read.csv(file.path(EFFIS_CACHE, sprintf("effis_fire_%s.csv", effis_key)))
   forest <- readRDS(file.path(EFFIS_CACHE, sprintf("effis_forest_%s.rds", effis_key)))
   bf <- calculate_burn_fractions(fires, as.numeric(forest$lc1),
-                                 project_area = PROJECT_AREA,
                                  rescale_firesize = RESCALE_FIRESIZE)
   tibble(region = region, year = fires$year, burn_fraction = as.numeric(bf))
 }) %>%

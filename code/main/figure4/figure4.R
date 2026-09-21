@@ -68,10 +68,10 @@ scenarios <- list(
 
 # Search bounds. n_Forest must reach well past 800: a volume-maximising buyer
 # under the budget dual takes ~807 forest projects, and Rule 3's all-forest
-# corner reaches ~764 projects just below the diversification threshold. The
-# former n_Forest <= 500 bound was binding in both cases, which manufactured a
-# spurious DACCS holding for Rule 1 and moved the apparent threshold from
-# rho_Forest ~ 0.159 down to ~0.12. n_DACS never exceeds ~70 at any solution.
+# corner reaches ~764 just below the diversification threshold. A bound that
+# binds on either manufactures a spurious DACCS holding for Rule 1 and shifts
+# the apparent rho_Forest threshold. n_DACS never exceeds ~70 at any solution;
+# the `hit` check below reports if either bound is reached.
 N_DACS_MAX   <- 200
 N_FOREST_MAX <- 2000
 
@@ -275,9 +275,8 @@ pd <- outcome_df %>%
   geom_text(data = comp_lab, inherit.aes = FALSE,
             aes(x = rule, y = ytop, label = lab),
             vjust = -0.5, size = 1.9, fontface = "bold", color = "grey25") +
-  # Plotmath throughout: the legend previously used the pre-revision `p5`, and
-  # the axis needs a subscript on D_5. atop() supplies the two-line stacking
-  # that "\n" would otherwise give.
+  # Plotmath throughout, so D_5 carries its subscript. atop() supplies the
+  # two-line stacking that "\n" would otherwise give.
   scale_fill_manual(
     values = c("Q (contracted)" = "#bdbdbd",
                "mu (expected)" = "#6baed6",

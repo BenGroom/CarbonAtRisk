@@ -5,15 +5,9 @@
 
 #' Seed for every forest fire Monte Carlo in the paper.
 #'
-#' Single source of truth. Main-text Fig. 2 and the SI forest figures previously
-#' used different seeds, so the same quantity came out differently in two places:
-#' California's single-project 100-year CaR was 656 kg/tonne from the K-rho sweep
-#' and 643 from the conversion analysis. Both are draws from the same sampling
-#' distribution (mean 650, sd 5 at N = 1,000), but a number quoted twice in prose
-#' should not move.
-#'
-#' Set to 101, the value main-text Fig. 2 already used, so the headline curves are
-#' unchanged and the SI moves to meet them.
+#' Single source of truth, so a quantity computed in more than one script (for
+#' example California's single-project 100-year CaR, which appears in both the
+#' K-rho sweep and the conversion analysis) takes the same value everywhere.
 #'
 #' The DACCS simulations keep their own seed (2100 in figure3.R): a different
 #' simulator with no shared state. The validation self-tests in si_deforestation.R
@@ -231,16 +225,16 @@ run_car_simulation <- function(empirical_burn_fractions,
 #' Calculate burn fraction from fire data
 #' @param fires_df Fire data frame
 #' @param forest_lc1 Total forest area from indicators
-#' @param project_area Project area in hectares (default 100000)
-#' @param rescale_firesize Whether to apply fire-size rescaling (default TRUE)
+#' @param rescale_firesize Whether to apply fire-size rescaling (default FALSE).
+#'   The paper uses the unscaled ratio; see README.
 #' @return Vector of burn fractions
-calculate_burn_fractions <- function(fires_df, forest_lc1, project_area = 100000,
-                                     rescale_firesize = TRUE) {
+calculate_burn_fractions <- function(fires_df, forest_lc1,
+                                     rescale_firesize = FALSE) {
   if (rescale_firesize) {
     fires_df <- fires_df %>%
       mutate(
         ratio_stretched = {
-          ratio <- firesize / project_area
+          ratio <- firesize
           1 + (ratio - min(ratio)) * (3 - 1) / (max(ratio) - min(ratio) + 1e-10)
         },
         burn_fraction = (lc1 / forest_lc1) * ratio_stretched
@@ -259,8 +253,7 @@ calculate_burn_fractions <- function(fires_df, forest_lc1, project_area = 100000
 #' @param gdf_gadm GeoDataFrame with admin boundaries and GPP
 #' @param selected_regions List of list(country, subcountry)
 #' @param CLIMATE_RATE Climate rate (default 0.005)
-#' @param rescale_firesize Whether to rescale fire size (default TRUE)
-#' @param project_area Project area in hectares (default 100000)
+#' @param rescale_firesize Whether to rescale fire size (default FALSE)
 #' @param regrowth_rates Named vector of annual regrowth rates (from get_regrowth_rates())
 #' @param n_simulations Number of MC simulations (default 5000)
 #' @param time_horizons Vector of time horizons
@@ -269,8 +262,7 @@ calculate_burn_fractions <- function(fires_df, forest_lc1, project_area = 100000
 process_selected_geometries <- function(gdf_gadm, selected_regions,
                                          regrowth_rates,
                                          CLIMATE_RATE = 0.005,
-                                         rescale_firesize = TRUE,
-                                         project_area = 100000,
+                                         rescale_firesize = FALSE,
                                          n_simulations = 5000,
                                          time_horizons = c(1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100,
                                                            110, 120, 130, 140, 150, 160, 170, 180, 200),
@@ -333,7 +325,6 @@ process_selected_geometries <- function(gdf_gadm, selected_regions,
     empirical_burn_fractions <- calculate_burn_fractions(
       fires_df,
       forest_json$lc1,
-      project_area,
       rescale_firesize = rescale_firesize
     )
     all_burn_fractions[[geo_label]] <- empirical_burn_fractions
@@ -481,7 +472,7 @@ run_diversification_analysis <- function(gdf_gadm,
   if (is.null(fires_df) || is.null(forest_json)) stop("Failed to fetch fire data from API")
 
   empirical_burn_fractions <- calculate_burn_fractions(
-    fires_df, forest_json$lc1, project_area = estate_area,
+    fires_df, forest_json$lc1,
     rescale_firesize = rescale_firesize
   )
 

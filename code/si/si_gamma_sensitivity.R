@@ -24,7 +24,6 @@ set.seed(CAR_SEED)
 GPKG_PATH <- "data/admin_regrowth_with_gpp.gpkg"
 EFFIS_CACHE <- "data/effis_cache"
 N_SIMULATIONS <- 5000
-ESTATE_AREA <- 1000
 REGROWTH_RATES <- get_regrowth_rates()
 
 GAMMA_VALUES <- c(0, 0.005, 0.01)
@@ -59,7 +58,7 @@ for (reg in regions) {
   regrowth_rate <- REGROWTH_RATES[[reg$subcountry]]
 
   burn_fracs <- calculate_burn_fractions(
-    fires_df, forest_json$lc1, project_area = ESTATE_AREA,
+    fires_df, forest_json$lc1,
     rescale_firesize = FALSE
   )
 

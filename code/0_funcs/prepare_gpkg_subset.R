@@ -1,6 +1,6 @@
 # Prepare the region-subset GeoPackage for the ncc replication package
 #
-# The full admin_regrowth_with_gpp.gpkg file (175 MB, 3,388 admin units
+# The full admin_regrowth_global.gpkg file (175 MB, 3,388 admin units
 # worldwide) was created by joining GADM Level 1 administrative boundaries
 # with mean Gross Primary Productivity (GPP) from the Bi et al. (2022)
 # global GPP product (doi:10.1038/s41597-022-01309-2). The GPP values
@@ -15,18 +15,23 @@
 # transparency but does not need to be run for replication, since the
 # subset file is already included in data/.
 #
-# To run (from repo root, requires the full file at data/admin_regrowth_with_gpp.gpkg):
+# To run (from repo root, requires the full file at data/admin_regrowth_global.gpkg):
 #   Rscript code/0_funcs/prepare_gpkg_subset.R
 
 library(sf)
 
-full_path   <- "data/admin_regrowth_with_gpp.gpkg"
+full_path   <- "data/admin_regrowth_global.gpkg"
 subset_path <- "data/admin_regrowth_with_gpp.gpkg"
+
+if (identical(normalizePath(full_path, mustWork = FALSE),
+              normalizePath(subset_path, mustWork = FALSE))) {
+  stop("full_path and subset_path resolve to the same file; refusing to overwrite the input.")
+}
 
 if (!file.exists(full_path)) {
   stop("Full GeoPackage not found at ", full_path,
-       "\nThis script requires the full file (not included in the replication package).",
-       "\nThe subset file at ", subset_path, " is already included and sufficient for replication.")
+       "\nThis script requires the full global file, which is not included in the replication package.",
+       "\nThe subset at ", subset_path, " is already included and sufficient for replication.")
 }
 
 gpkg <- st_read(full_path, quiet = TRUE)

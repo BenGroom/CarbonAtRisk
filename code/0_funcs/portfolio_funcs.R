@@ -1,6 +1,5 @@
 # Portfolio functions for cross-technology CaR analysis
 # Bernoulli project model with within- and between-technology correlation
-# Adapted from code/funcs/fig4.R for standalone ncc use
 
 library(truncnorm)
 
